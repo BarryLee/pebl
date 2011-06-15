@@ -1,0 +1,83 @@
+K 25
+svn:wc:ra_dav:version-url
+V 37
+/svn/!svn/ver/149/trunk/src/pebl/test
+END
+test_network.py
+K 25
+svn:wc:ra_dav:version-url
+V 53
+/svn/!svn/ver/102/trunk/src/pebl/test/test_network.py
+END
+test_data.py
+K 25
+svn:wc:ra_dav:version-url
+V 50
+/svn/!svn/ver/146/trunk/src/pebl/test/test_data.py
+END
+test_prior.py
+K 25
+svn:wc:ra_dav:version-url
+V 50
+/svn/!svn/ver/97/trunk/src/pebl/test/test_prior.py
+END
+benchmark.py
+K 25
+svn:wc:ra_dav:version-url
+V 49
+/svn/!svn/ver/48/trunk/src/pebl/test/benchmark.py
+END
+test_result.py
+K 25
+svn:wc:ra_dav:version-url
+V 52
+/svn/!svn/ver/147/trunk/src/pebl/test/test_result.py
+END
+__init__.py
+K 25
+svn:wc:ra_dav:version-url
+V 48
+/svn/!svn/ver/47/trunk/src/pebl/test/__init__.py
+END
+test_evaluator.py
+K 25
+svn:wc:ra_dav:version-url
+V 55
+/svn/!svn/ver/149/trunk/src/pebl/test/test_evaluator.py
+END
+test_tutorial.py
+K 25
+svn:wc:ra_dav:version-url
+V 54
+/svn/!svn/ver/122/trunk/src/pebl/test/test_tutorial.py
+END
+test_config.py
+K 25
+svn:wc:ra_dav:version-url
+V 51
+/svn/!svn/ver/94/trunk/src/pebl/test/test_config.py
+END
+test_pebl_script.py
+K 25
+svn:wc:ra_dav:version-url
+V 57
+/svn/!svn/ver/122/trunk/src/pebl/test/test_pebl_script.py
+END
+test_cpd.py
+K 25
+svn:wc:ra_dav:version-url
+V 48
+/svn/!svn/ver/89/trunk/src/pebl/test/test_cpd.py
+END
+test_taskcontroller.py
+K 25
+svn:wc:ra_dav:version-url
+V 60
+/svn/!svn/ver/101/trunk/src/pebl/test/test_taskcontroller.py
+END
+test_posterior.py
+K 25
+svn:wc:ra_dav:version-url
+V 54
+/svn/!svn/ver/47/trunk/src/pebl/test/test_posterior.py
+END

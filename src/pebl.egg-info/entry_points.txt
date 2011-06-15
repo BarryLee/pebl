@@ -1,0 +1,3 @@
+[console_scripts]
+pebl = pebl.pebl_script:main
+

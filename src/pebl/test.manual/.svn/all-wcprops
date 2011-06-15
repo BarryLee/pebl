@@ -1,0 +1,29 @@
+K 25
+svn:wc:ra_dav:version-url
+V 44
+/svn/!svn/ver/133/trunk/src/pebl/test.manual
+END
+test_ec2.py
+K 25
+svn:wc:ra_dav:version-url
+V 56
+/svn/!svn/ver/104/trunk/src/pebl/test.manual/test_ec2.py
+END
+test_xgrid.py
+K 25
+svn:wc:ra_dav:version-url
+V 58
+/svn/!svn/ver/133/trunk/src/pebl/test.manual/test_xgrid.py
+END
+test_scale.py
+K 25
+svn:wc:ra_dav:version-url
+V 58
+/svn/!svn/ver/132/trunk/src/pebl/test.manual/test_scale.py
+END
+README
+K 25
+svn:wc:ra_dav:version-url
+V 50
+/svn/!svn/ver/88/trunk/src/pebl/test.manual/README
+END

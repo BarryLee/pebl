@@ -1,0 +1,9 @@
+*~
+*.pyc
+*.swp
+*.vim
+*.bak*
+.svn/*
+build/*
+*.so
+

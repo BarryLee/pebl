@@ -1,0 +1,89 @@
+K 25
+svn:wc:ra_dav:version-url
+V 32
+/svn/!svn/ver/151/trunk/src/pebl
+END
+network.py
+K 25
+svn:wc:ra_dav:version-url
+V 43
+/svn/!svn/ver/142/trunk/src/pebl/network.py
+END
+data.py
+K 25
+svn:wc:ra_dav:version-url
+V 40
+/svn/!svn/ver/125/trunk/src/pebl/data.py
+END
+prior.py
+K 25
+svn:wc:ra_dav:version-url
+V 41
+/svn/!svn/ver/129/trunk/src/pebl/prior.py
+END
+util.py
+K 25
+svn:wc:ra_dav:version-url
+V 40
+/svn/!svn/ver/129/trunk/src/pebl/util.py
+END
+result.py
+K 25
+svn:wc:ra_dav:version-url
+V 42
+/svn/!svn/ver/147/trunk/src/pebl/result.py
+END
+__init__.py
+K 25
+svn:wc:ra_dav:version-url
+V 44
+/svn/!svn/ver/136/trunk/src/pebl/__init__.py
+END
+_cpd.c
+K 25
+svn:wc:ra_dav:version-url
+V 38
+/svn/!svn/ver/89/trunk/src/pebl/_cpd.c
+END
+evaluator.py
+K 25
+svn:wc:ra_dav:version-url
+V 45
+/svn/!svn/ver/140/trunk/src/pebl/evaluator.py
+END
+_network.c
+K 25
+svn:wc:ra_dav:version-url
+V 42
+/svn/!svn/ver/56/trunk/src/pebl/_network.c
+END
+config.py
+K 25
+svn:wc:ra_dav:version-url
+V 41
+/svn/!svn/ver/74/trunk/src/pebl/config.py
+END
+pebl_script.py
+K 25
+svn:wc:ra_dav:version-url
+V 47
+/svn/!svn/ver/122/trunk/src/pebl/pebl_script.py
+END
+cpd.py
+K 25
+svn:wc:ra_dav:version-url
+V 39
+/svn/!svn/ver/129/trunk/src/pebl/cpd.py
+END
+posterior.py
+K 25
+svn:wc:ra_dav:version-url
+V 44
+/svn/!svn/ver/48/trunk/src/pebl/posterior.py
+END
+discretizer.py
+K 25
+svn:wc:ra_dav:version-url
+V 47
+/svn/!svn/ver/151/trunk/src/pebl/discretizer.py
+END

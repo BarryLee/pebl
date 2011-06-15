@@ -1,0 +1,41 @@
+K 25
+svn:wc:ra_dav:version-url
+V 40
+/svn/!svn/ver/140/trunk/src/pebl/learner
+END
+base.py
+K 25
+svn:wc:ra_dav:version-url
+V 48
+/svn/!svn/ver/129/trunk/src/pebl/learner/base.py
+END
+custom.py
+K 25
+svn:wc:ra_dav:version-url
+V 50
+/svn/!svn/ver/127/trunk/src/pebl/learner/custom.py
+END
+greedy.py
+K 25
+svn:wc:ra_dav:version-url
+V 50
+/svn/!svn/ver/129/trunk/src/pebl/learner/greedy.py
+END
+__init__.py
+K 25
+svn:wc:ra_dav:version-url
+V 51
+/svn/!svn/ver/77/trunk/src/pebl/learner/__init__.py
+END
+exhaustive.py
+K 25
+svn:wc:ra_dav:version-url
+V 53
+/svn/!svn/ver/77/trunk/src/pebl/learner/exhaustive.py
+END
+simanneal.py
+K 25
+svn:wc:ra_dav:version-url
+V 53
+/svn/!svn/ver/140/trunk/src/pebl/learner/simanneal.py
+END
