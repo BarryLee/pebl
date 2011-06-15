@@ -368,7 +368,6 @@ class Dataset(object):
         """Checks whether the specified arity >= number of unique observations.
 
         The check is only performed for discrete variables.
-
         If this check fails, the CPT and other data structures would fail.
         So, we should raise error while loading the data. Fail Early and Explicitly!
 
