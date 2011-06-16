@@ -6,6 +6,7 @@ import numpy as np
 from pebl import network, result, classifier_evaluator
 from pebl.learner.base import *
 from pebl.cpd import MultinomialCPD as mcpd
+from pebl.weighted_network import *
 
 class Freq(object):
 
@@ -114,7 +115,7 @@ class ClassifierLearner(Learner):
         data_ = self.data
         # do not support incomplete data
         if data_.has_interventions or data_.has_missing:
-            raise ClassifierLearnerException()
+            raise ClassifierLearnerException, "do not support incomplete data"
         # the last column is for classes
         self.cls_var = data_.variables[-1]
         self.cls_val = self.data.observations[:, -1]
@@ -133,7 +134,6 @@ class ClassifierLearner(Learner):
         self.result.start_run()
         
         num_attr = self.num_attr
-        num_cls = self.num_cls
         attrnodes = range(num_attr)
 
         #parents = self.network.edges.parents
@@ -153,9 +153,9 @@ class ClassifierLearner(Learner):
 
         full_graph = self._createFullGraph()
         root_node = 0
-        min_tree = self._minSpanTree(full_graph, root_node)
+        min_span_tree = self._minSpanTree(full_graph, root_node)
 
-        self.network = self._addClassParent(min_tree)
+        self.network = self._addClassParent(min_span_tree)
 
         self.learnParameters()
         
@@ -165,16 +165,103 @@ class ClassifierLearner(Learner):
         return self.result
         
     def _createFullGraph(self):
-        data_ = self.data
-        num_attr = self.num_attr
-        
         edges = []
+        num_attr = self.num_attr
         for i in range(num_attr):
-            edges.append((num_attr, i))
-            for j in range(i) + range(i+1, num_attr):
-                edges.append((j, i))
-        
+            for j in range(i+1, num_attr):
+                # use the inverse of cmi as weight so we can apply
+                #   a minimum spantree algorithm to actually derive
+                #   a maximum spantree
+                edges.append(WeightedEdge(i, j, -self.cmi[i,j]))
+                #edges.append(WeightedEdge(j, i, -self.cmi[i,j]))
+        #edgeset = WeightedEdgeSet(self.num_attr)
+        #edgeset.add_many(edges)
+        #net = WeightedNetwork(edgeset)
+        #return net
         return edges
+
+    def _minSpanTree(self, edges, root_vertex):
+        def orient_edges(min_tree_edges, root):
+            q = []
+            q.append(root)
+            for e in min_tree_edges:
+                e.oriented = 0
+
+            while len(q) > 0:
+                v = q.pop(0)
+                for e in min_tree_edges:
+                    if not e.oriented:
+                        if e.src == v:
+                            e.oriented = 1
+                            q.append(v)
+                        elif e.dest == v:
+                            e.invert()
+                            e.oriented = 1
+                            q.append(v)
+
+            # sanity check
+            if sum((e.oriented for e in min_tree_edges)) != \
+               len(min_tree_edges):
+                raise Exception, "Unable to orient all of the edges"
+
+        def init_set(num_vertex):
+            return [set([i]) for i in range(num_vertex)]
+
+        def find_set(a_set, vertex):
+            for s in a_set:
+                if vertex in s:
+                    return s
+
+        def union(a_set, sub_set1, sub_set2):
+            set_size = len(a_set)
+            for i in range(set_size):
+                this_set = a_set[i]
+                if this_set in (sub_set1, sub_set2):
+                    ns = this_set == sub_set1 and sub_set2 or sub_set1
+                    a_set[i] = sub_set1.union(sub_set2)
+                    for j in range(i+1, set_size):
+                        another_set = a_set[j]
+                        if ns == another_set:
+                            a_set.remove(another_set)
+                            return
+
+        def get_directed_edges(edges, num_vertex, root):
+            edges.sort(key=lambda e: e.weight)
+
+            new_edges = []
+            vertex_set = init_set(num_vertex)
+            for e in edges:
+                set_u = find_set(vertex_set, e.src)
+                set_v = find_set(vertex_set, e.dest)
+                if set_u != set_v:
+                    new_edges.append(e)
+                    union(vertex_set, set_u, set_v)
+
+            orient_edges(new_edges, root_vertex)
+            return new_edges
+
+        min_span_tree_edges = get_directed_edges(edges, self.num_attr, root_vertex)
+        edgeset = WeightedEdgeSet(self.num_attr)
+        edgeset.add_many(min_span_tree_edges)
+        net = WeightedNetwork(self.data.variables[0:-1], edgeset)
+        return net
+
+    def _addClassParent(self, attr_network):
+        return attr_network
+
+    def learnParameters(self):
+        pass
+
+    #def _createFullGraph(self):
+        #num_attr = self.num_attr
+        
+        #edges = []
+        #for i in range(num_attr):
+            #edges.append((num_attr, i))
+            #for j in range(i) + range(i+1, num_attr):
+                #edges.append((j, i))
+        
+        #return edges
 
     def _condMutualInfoAll(self):
         num_attr = self.num_attr
@@ -204,8 +291,6 @@ class ClassifierLearner(Learner):
         cpd_x, cpd_y = self.cpdXZ[x], self.cpdXZ[y]
         cpd_xy = self.cpdXYZ[(x, y)]
 
-        #import pdb
-        #pdb.set_trace()
         #print "calculate cmi for %d, %d" % (x, y)
         cmi_xy = 0
         for vz in range(num_cls):
