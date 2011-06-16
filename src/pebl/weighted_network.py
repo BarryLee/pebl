@@ -35,7 +35,7 @@ class WeightedEdgeSet(EdgeSet):
         self.weights[src, dest] = weight
 
     def get_weight(self, src, dest):
-        return self.weight[src, dest]
+        return self.weights[src, dest]
 
     def add_many(self, edges):        
         """add sequence of WeightedEdge instances.

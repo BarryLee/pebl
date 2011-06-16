@@ -133,7 +133,7 @@ class ClassifierLearner(Learner):
 
         self.result.start_run()
         
-        num_attr = self.num_attr
+        num_attr = cls_idx = self.num_attr
         attrnodes = range(num_attr)
 
         #parents = self.network.edges.parents
@@ -141,13 +141,13 @@ class ClassifierLearner(Learner):
         self.cpdXYZ = {}
         for node in attrnodes:
             self.cpdXZ[node] = ClassifierLearner.MultinomialCPD(self.data._subset_ni_fast(
-                                [node, num_attr]))
+                                [node, cls_idx]))
             
             # calculate a joint counts for every two attributes conditioned on Z
             for other_node in attrnodes[node+1:]:
                 idx = (node, other_node)
                 self.cpdXYZ[idx] = ClassifierLearner.MultinomialJointCPD(self.data._subset_ni_fast(
-                                    [node, other_node, num_attr]))
+                                    [node, other_node, cls_idx]))
 
         self.cmi = self._condMutualInfoAll()
 
@@ -247,10 +247,21 @@ class ClassifierLearner(Learner):
         return net
 
     def _addClassParent(self, attr_network):
-        return attr_network
+        #import pdb; pdb.set_trace()
+        edgeset = WeightedEdgeSet(self.data.variables.size)
+        for src,dest in attr_network.edges:
+            edgeset.add(WeightedEdge(src, dest, 
+                                     attr_network.edges.get_weight(src, dest)))
+        num_attr = cls_idx = self.num_attr
+        for node in range(num_attr):
+            edgeset.add(WeightedEdge(cls_idx, node, 0.0))
+        classifier_network = WeightedNetwork(self.data.variables, edgeset)
+        return classifier_network
 
     def learnParameters(self):
-        pass
+        parents = self.network.edges.parents
+
+        
 
     #def _createFullGraph(self):
         #num_attr = self.num_attr
