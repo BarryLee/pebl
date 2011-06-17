@@ -8,6 +8,9 @@ from pebl.learner.base import *
 from pebl.cpd import MultinomialCPD as mcpd
 from pebl.weighted_network import *
 
+class LocalCPDCache(object):
+    pass
+
 class Freq(object):
 
     def __init__(self, data_):
@@ -125,6 +128,7 @@ class ClassifierLearner(Learner):
         self.num_attr = len(data_.variables) - 1
 
         self.inv_log2 = 1.0 / math.log(2)
+        self._cpd_cache = {}
         #self.network = network.Network(data_.variables, self._createFullGraph())
 
     def run(self):
@@ -133,21 +137,23 @@ class ClassifierLearner(Learner):
 
         self.result.start_run()
         
-        num_attr = cls_idx = self.num_attr
+        num_attr = cls_node = self.num_attr
         attrnodes = range(num_attr)
 
         #parents = self.network.edges.parents
         self.cpdXZ = [None] * num_attr 
         self.cpdXYZ = {}
         for node in attrnodes:
-            self.cpdXZ[node] = ClassifierLearner.MultinomialCPD(self.data._subset_ni_fast(
-                                [node, cls_idx]))
+            #self.cpdXZ[node] = ClassifierLearner.MultinomialCPD(self.data._subset_ni_fast(
+                                #[node, cls_node]))
+            self.cpdXZ[node] = self._cpd([node, cls_node])
             
             # calculate a joint counts for every two attributes conditioned on Z
             for other_node in attrnodes[node+1:]:
                 idx = (node, other_node)
                 self.cpdXYZ[idx] = ClassifierLearner.MultinomialJointCPD(self.data._subset_ni_fast(
-                                    [node, other_node, cls_idx]))
+                                    [node, other_node, cls_node]))
+                #self.cpdXYZ[idx] = self._jointCpd([node, other_node, cls_node])
 
         self.cmi = self._condMutualInfoAll()
 
@@ -164,6 +170,11 @@ class ClassifierLearner(Learner):
 
         return self.result
         
+    def _cpd(self, nodes):
+        idx = tuple(nodes)
+        return self._cpd_cache.setdefault(idx, \
+            ClassifierLearner.MultinomialCPD(self.data._subset_ni_fast(nodes)))
+
     def _createFullGraph(self):
         edges = []
         num_attr = self.num_attr
@@ -193,11 +204,11 @@ class ClassifierLearner(Learner):
                     if not e.oriented:
                         if e.src == v:
                             e.oriented = 1
-                            q.append(v)
+                            q.append(e.dest)
                         elif e.dest == v:
                             e.invert()
                             e.oriented = 1
-                            q.append(v)
+                            q.append(e.dest)
 
             # sanity check
             if sum((e.oriented for e in min_tree_edges)) != \
@@ -252,15 +263,34 @@ class ClassifierLearner(Learner):
         for src,dest in attr_network.edges:
             edgeset.add(WeightedEdge(src, dest, 
                                      attr_network.edges.get_weight(src, dest)))
-        num_attr = cls_idx = self.num_attr
+        num_attr = cls_node = self.num_attr
         for node in range(num_attr):
-            edgeset.add(WeightedEdge(cls_idx, node, 0.0))
+            edgeset.add(WeightedEdge(cls_node, node, 0.0))
         classifier_network = WeightedNetwork(self.data.variables, edgeset)
         return classifier_network
 
     def learnParameters(self):
-        parents = self.network.edges.parents
+        """Learns parameters for the current network structure. 
+        Use an uniform Dirichlet prior.
 
+        """
+        parents = self.network.edges.parents
+        variables_ = self.data.variables
+        num_vertex = variables_.size
+        arities = [v.arity for v in variables_]
+
+        self.cpd = [None] * num_vertex
+        for vertex in range(num_vertex):
+            this_cpd = self._cpd([vertex] + parents(vertex))
+            this_arity = arities[vertex]
+            m, n = this_cpd.counts.shape
+            prior_adjust = np.array([[1]*this_arity + [this_arity]]*m) 
+            probs = this_cpd.counts + prior_adjust
+            denominator = np.array([[float(r[-1])]*n for r in probs])
+            probs = probs / denominator
+            this_cpd.probs = probs
+            self.cpd[vertex] = this_cpd
+            
         
 
     #def _createFullGraph(self):
