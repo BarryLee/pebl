@@ -432,7 +432,7 @@ def fromfile(filename):
         return fromstring(f.read())
 
 
-def fromstring(stringrep, fieldsep=None):
+def fromstring(stringrep, fieldsep='\t'):
     """Parse the string representation of a dataset and return a Dataset instance.
     
     See the documentation for fromfile() for information about file format.

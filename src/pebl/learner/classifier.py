@@ -312,7 +312,7 @@ class ClassifierLearner(Learner):
             for y in range(x+1, num_attr):
                 cmi[x][y] = cmi[y][x] = self._condMutualInfo(x, y)
 
-        print cmi
+        #print cmi
         return cmi
 
     def _condMutualInfo(self, x, y):
