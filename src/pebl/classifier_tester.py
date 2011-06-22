@@ -4,7 +4,7 @@
 
 from random import random
 
-from pebl.learner import classifier
+#from pebl.learner import classifier
 from pebl.classifier import Classifier
 
 class TestResult(object):
@@ -58,7 +58,7 @@ class ClassifierTester(object):
     def getScore(self):
         return self.result.accuracy
 
-def cross_validation(data, test_ratio=0.05, runs=1):
+def cross_validate(data, classifier_type="tan", test_ratio=0.05, runs=1):
     def divide_data(data, test_ratio):
         trainset = []
         testset = []
@@ -71,10 +71,22 @@ def cross_validation(data, test_ratio=0.05, runs=1):
         test_dataset = data.subset(samples=testset)
         return train_dataset, test_dataset
 
+    def classifier_picker(classifier_type):
+        classifier_types = {
+            'nb'    :   'nb_classifier.NBClassifierLearner',
+            'tan'   :   'tan_classifier.TANClassifierLearner'
+        }
+        ct = classifier_types.get(classifier_type.lower()).split('.')
+        upper_mod = __import__('pebl.learner', fromlist=[ ct[0] ])
+        mod = getattr(upper_mod, ct[0])
+        cls = getattr(mod, ct[1])
+        return cls
+
     scores = []
     for i in range(runs):
         trainset, testset = divide_data(data, test_ratio)
-        learner = classifier.ClassifierLearner(trainset)
+        #learner = classifier.ClassifierLearner(trainset)
+        learner = classifier_picker(classifier_type)(trainset)
         learner.run()
         cfr = Classifier(learner)
         tester = ClassifierTester(cfr, testset)
@@ -90,11 +102,12 @@ if __name__ == "__main__":
     # run a cross validation
     from pebl import data
     # test parameters
-    data_file = "/home/drli/code/ml/vote.pebl"
-    test_ratio = 0.1
+    data_file = "/home/drli/code/ml/iris.pebl"
+    classifier_type = 'tan'
+    test_ratio = 0.3
     runs = 10
 
     dataset = data.fromfile(data_file)
-    #dataset.discretize(numbins=3, excludevars=[dataset.variables.size-1])
-    cross_validation(dataset, test_ratio, runs)
+    dataset.discretize(numbins=3, excludevars=[dataset.variables.size-1])
+    cross_validate(dataset, classifier_type, test_ratio, runs)
 

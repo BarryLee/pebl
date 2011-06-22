@@ -54,12 +54,12 @@ class Classifier(object):
     def jointProb(self, a_case):
         p = 1.0
         parents = self.network.edges.parents 
-        for param_idx, param_val in enumerate(a_case):
-            this_cpd = self.cpd[param_idx]
-            j = np.dot([param_val] + \
-                           [a_case[pai] for pai in parents(param_idx)], \
+        for attr_idx, attr_val in enumerate(a_case):
+            this_cpd = self.cpd[attr_idx]
+            j = np.dot([attr_val] + \
+                           [a_case[pai] for pai in parents(attr_idx)], \
                        this_cpd.offsets)
-            p *= this_cpd.probs[j, param_val]
+            p *= this_cpd.probs[j, attr_val]
 
         return p
 
