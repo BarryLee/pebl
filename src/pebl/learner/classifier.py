@@ -2,47 +2,15 @@
 
 from pebl import network, result
 from pebl.learner.base import *
-from pebl.cpd import MultinomialCPD as mcpd
+
 
 class ClassifierLearnerException(Exception):
     pass
 
 class ClassifierLearner(Learner):
-    
-    class MultinomialCPD(mcpd):
+    """Base class for learning a bayesian network classifier.
 
-        def condProb(self, j, k, alpha_ij=None):
-            """Compute the conditional probability:
-
-                 P(Xi=k|PAij) = (alpha_ijk + Sijk) / (Nij + Sij)
-                         __ 
-                        \
-            where Nij = /__ alpha_ij
-                         k
-            i denotes the ith variable Xi.
-            j denotes the jth instantiation of PAi.
-            k denotes the kth value of Xi.
-            Sijk denotes number of Xis where Xi=k conditioned on PAij.
-            Sij denotes number of jth instantiations of PAi.
-
-            """
-            Sijk = self.counts[j, k] 
-            Sij = self.counts[j, -1]
-            if alpha_ij is None:
-                alpha_ij = [1] * self.data.variables[0].arity
-            Nij = sum(alpha_ij)
-            alpha_ijk = alpha_ij[k]
-            #if alpha_ij is None:
-                #if Sijk == 0 or Sij == 0:
-                    #return 0
-                #else:
-                    #alpha_ijk = Nij = 0.0
-            #else:
-                #Nij = sum(alpha_ij)
-                #alpha_ijk = alpha_ij[k]
-            
-            return float(alpha_ijk + Sijk) / (Nij + Sij)
-
+    """
     def __init__(self, data_=None, prior_=None, **kw):
         super(ClassifierLearner, self).__init__(data_)
 

@@ -5,6 +5,7 @@ import numpy as np
 
 from pebl import network, result
 from pebl.learner.classifier import ClassifierLearner
+from pebl.cpd_ext import MultinomialCPD
 from pebl.weighted_network import *
 
 class LocalCPDCache(object):
@@ -43,7 +44,7 @@ class Freq(object):
 
 class TANClassifierLearner(ClassifierLearner):
 
-    class MultinomialJointCPD(ClassifierLearner.MultinomialCPD):
+    class MultinomialJointCPD(MultinomialCPD):
 
         def __init__(self, data_):
             if len(data_.variables) <= 2:
@@ -90,8 +91,6 @@ class TANClassifierLearner(ClassifierLearner):
         self.cpdXZ = [None] * num_attr 
         self.cpdXYZ = {}
         for node in attrnodes:
-            #self.cpdXZ[node] = ClassifierLearner.MultinomialCPD(self.data._subset_ni_fast(
-                                #[node, cls_node]))
             self.cpdXZ[node] = self._cpd([node, cls_node])
             
             # calculate a joint counts for every two attributes conditioned on Z
@@ -117,7 +116,7 @@ class TANClassifierLearner(ClassifierLearner):
         #import pdb; pdb.set_trace()
         idx = tuple(nodes)
         return self._cpd_cache.setdefault(idx, \
-            ClassifierLearner.MultinomialCPD(self.data._subset_ni_fast(nodes)))
+            MultinomialCPD(self.data._subset_ni_fast(nodes)))
 
     def _createFullGraph(self):
         edges = []
@@ -229,7 +228,7 @@ class TANClassifierLearner(ClassifierLearner):
             m, n = this_cpd.counts.shape
             prior_adjust = np.array([[1]*this_arity + [this_arity]]*m) 
             probs = this_cpd.counts + prior_adjust
-            denominator = np.array([[float(r[-1])]*n for r in probs])
+            denominator = np.array([ [float(r[-1])]*n for r in probs ])
             probs = probs / denominator
             this_cpd.probs = probs
             self.cpd[vertex] = this_cpd
