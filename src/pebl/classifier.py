@@ -49,17 +49,23 @@ class Classifier(object):
         for c in range(num_cls):
             cond_class_probs[c] /= Pcase
 
+        #import pdb; pdb.set_trace()
         return cond_class_probs
 
     def jointProb(self, a_case):
+        #import pdb; pdb.set_trace()
         p = 1.0
         parents = self.network.edges.parents 
         for attr_idx, attr_val in enumerate(a_case):
             this_cpd = self.cpd[attr_idx]
-            j = np.dot([attr_val] + \
-                           [a_case[pai] for pai in parents(attr_idx)], \
-                       this_cpd.offsets)
-            p *= this_cpd.probs[j, attr_val]
+            #j = np.dot([attr_val] + \
+                           #[a_case[pai] for pai in parents(attr_idx)], \
+                       #this_cpd.offsets)
+            #p *= this_cpd.probs[j, attr_val]
+            #p *= this_cpd.condProb(j, attr_val)
+            this_case = [attr_val] + \
+                           [a_case[pai] for pai in parents(attr_idx)]
+            p *= this_cpd.condProb(this_case)
 
         return p
 

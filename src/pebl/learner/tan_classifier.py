@@ -75,7 +75,7 @@ class TANClassifierLearner(ClassifierLearner):
             k = xk * self.data.variables[1].arity + yk
             if alpha_ij is None:
                 alpha_ij = [1] * self.data.variables[0].arity * self.data.variables[1].arity
-            return super(TANClassifierLearner.MultinomialJointCPD, self).condProb(j, k, alpha_ij)
+            return super(TANClassifierLearner.MultinomialJointCPD, self)._condProb(j, k, alpha_ij)
 
 
     def __init__(self, data_=None, prior_=None, **kw):
@@ -93,7 +93,7 @@ class TANClassifierLearner(ClassifierLearner):
         for node in attrnodes:
             self.cpdXZ[node] = self._cpd([node, cls_node])
             
-            # calculate a joint counts for every two attributes conditioned on Z
+            # compute a joint counts for every two attributes conditioned on Z
             for other_node in attrnodes[node+1:]:
                 idx = (node, other_node)
                 self.cpdXYZ[idx] = TANClassifierLearner.MultinomialJointCPD(self.data._subset_ni_fast(
@@ -278,10 +278,12 @@ class TANClassifierLearner(ClassifierLearner):
             Pz = self.probZ(vz)
             if Pz == 0: continue
             for vx in range(arity_x):
-                Px_z = cpd_x.condProb(vz, vx)
+                #Px_z = cpd_x.condProb(vz, vx)
+                Px_z = cpd_x.condProb([vx, vz])
                 if Px_z == 0: continue
                 for vy in range(arity_y):
-                    Py_z = cpd_y.condProb(vz, vy)
+                    #Py_z = cpd_y.condProb(vz, vy)
+                    Py_z = cpd_y.condProb([vy, vz])
                     if Py_z == 0: continue
                     Pxy_z = cpd_xy.condProb(vz, vx, vy)
                     if Pxy_z == 0: continue

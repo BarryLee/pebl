@@ -74,7 +74,7 @@ def cross_validate(data, classifier_type="tan", test_ratio=0.05, runs=1):
     def classifier_picker(classifier_type):
         classifier_types = {
             'nb'    :   'nb_classifier.NBClassifierLearner',
-            'tan'   :   'tan_classifier.TANClassifierLearner'
+            'tan'   :   'tan_classifier2.TANClassifierLearner'
         }
         ct = classifier_types.get(classifier_type.lower()).split('.')
         upper_mod = __import__('pebl.learner', fromlist=[ ct[0] ])
@@ -108,6 +108,6 @@ if __name__ == "__main__":
     runs = 10
 
     dataset = data.fromfile(data_file)
-    dataset.discretize(numbins=3, excludevars=[dataset.variables.size-1])
+    #dataset.discretize(numbins=3, excludevars=[dataset.variables.size-1])
     cross_validate(dataset, classifier_type, test_ratio, runs)
 
