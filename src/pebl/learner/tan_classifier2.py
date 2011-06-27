@@ -61,7 +61,7 @@ class TANClassifierLearner(ClassifierLearner):
         full_graph = self._createFullGraph()
 
         num_attr = self.num_attr
-        for root_node in range(num_attr):
+        for root_node in xrange(num_attr):
             try:
                 min_span_tree = self._minSpanTree(full_graph, root_node)
                 self.network = self._addClassParent(min_span_tree)
@@ -80,11 +80,11 @@ class TANClassifierLearner(ClassifierLearner):
 
         self.cpdXC = [None] * num_attr 
         self.cpdXYC = {}
-        for node in range(num_attr):
+        for node in xrange(num_attr):
             self.cpdXC[node] = self._cpd([node, cls_node])
 
             # compute a joint counts for every two attributes conditioned on C
-            for other_node in range(node+1, num_attr):
+            for other_node in xrange(node+1, num_attr):
                 idx = (node, other_node)
                 self.cpdXYC[idx] = self._jointCpd([node, other_node, cls_node])
         self.cpdC = self._cpd([cls_node])
@@ -122,8 +122,8 @@ class TANClassifierLearner(ClassifierLearner):
         num_attr = self.num_attr
         cmi = np.zeros((num_attr, num_attr))
 
-        for x in range(num_attr):
-            for y in range(x+1, num_attr):
+        for x in xrange(num_attr):
+            for y in xrange(x+1, num_attr):
                 cmi[x][y] = cmi[y][x] = self._condMutualInfo(x, y)
 
         return cmi
@@ -163,13 +163,13 @@ class TANClassifierLearner(ClassifierLearner):
 
         #print "calculate cmi for %d, %d" % (x, y)
         cmi_xy = 0
-        for vc in range(num_cls):
+        for vc in xrange(num_cls):
             Pc = self.probC(vc)
             if Pc == 0: continue
-            for vx in range(arity_x):
+            for vx in xrange(arity_x):
                 Px_c = cpd_x.condProb([vx, vc])
                 if Px_c == 0: continue
-                for vy in range(arity_y):
+                for vy in xrange(arity_y):
                     Py_c = cpd_y.condProb([vy, vc])
                     if Py_c == 0: continue
                     Pxy_c = cpd_xy.condProb(vc, vx, vy)
@@ -193,7 +193,7 @@ class TANClassifierLearner(ClassifierLearner):
         cpd_xy = self.cpdXYC[(x, y)]
 
         cmi_xy = 0
-        for vc in range(num_cls):
+        for vc in xrange(num_cls):
             Pc = self.probC(vc)
             rho2 = cpd_xy.condCovariance(0, 1, vc) ** 2 / \
                     (cpd_xy.condVariance(0, vc) * cpd_xy.condVariance(1, vc))
@@ -209,8 +209,8 @@ class TANClassifierLearner(ClassifierLearner):
     def _createFullGraph(self):
         edges = []
         num_attr = self.num_attr
-        for i in range(num_attr):
-            for j in range(i+1, num_attr):
+        for i in xrange(num_attr):
+            for j in xrange(i+1, num_attr):
                 # use the inverse of cmi as weight so we can apply
                 #   a minimum spantree algorithm to actually derive
                 #   a maximum spantree
@@ -247,7 +247,7 @@ class TANClassifierLearner(ClassifierLearner):
                 raise CannotOrientException, "Unable to orient all of the edges"
 
         def init_set(num_vertex):
-            return [set([i]) for i in range(num_vertex)]
+            return [set([i]) for i in xrange(num_vertex)]
 
         def find_set(a_set, vertex):
             for s in a_set:
@@ -256,12 +256,12 @@ class TANClassifierLearner(ClassifierLearner):
 
         def union(a_set, sub_set1, sub_set2):
             set_size = len(a_set)
-            for i in range(set_size):
+            for i in xrange(set_size):
                 this_set = a_set[i]
                 if this_set in (sub_set1, sub_set2):
                     ns = this_set == sub_set1 and sub_set2 or sub_set1
                     a_set[i] = sub_set1.union(sub_set2)
-                    for j in range(i+1, set_size):
+                    for j in xrange(i+1, set_size):
                         another_set = a_set[j]
                         if ns == another_set:
                             a_set.remove(another_set)
@@ -297,7 +297,7 @@ class TANClassifierLearner(ClassifierLearner):
 
         num_attr = cls_node = self.num_attr
         # add to edgeset edges from class node to every attr nodes
-        for node in range(num_attr):
+        for node in xrange(num_attr):
             edgeset.add(WeightedEdge(cls_node, node, 0.0))
         classifier_network = WeightedNetwork(self.data.variables, edgeset)
         return classifier_network
@@ -312,7 +312,7 @@ class TANClassifierLearner(ClassifierLearner):
         num_vertex = variables_.size
 
         self.cpd = [None] * num_vertex
-        for vertex in range(num_vertex):
+        for vertex in xrange(num_vertex):
             this_cpd = self._cpd([vertex] + parents(vertex))
             if hasattr(this_cpd, "updateParameters"):
                 this_cpd.updateParameters()

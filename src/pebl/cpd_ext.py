@@ -124,31 +124,31 @@ class MultivariateCPD(object):
         continuous_values = observations[ :, [0]+self.continuous_parents ]
 
         num_cv = self.num_cv
+        counts = self.counts
+        exps = self.exps
+        params = self.params
 
         #if num_cv > 1: import pdb; pdb.set_trace()
         for j,vals in izip(indices, continuous_values):
             for k,v in enumerate(vals):
-                self.counts[j, k] += v
-                for m in range(k+1):
+                counts[j, k] += v
+                m = 0
+                while m <= k:
+                #for m in xrange(k+1):
                     a = (m+1)*num_cv+k
                     b = (k+1)*num_cv+m
                     inc = v*vals[m]
                     if a == b:
-                        self.counts[j, a] += inc
+                        counts[j, a] += inc
                     else:
-                        self.counts[j, a] += inc
-                        self.counts[j, b] += inc
-                #self.bicounts[j, k, k] += v ** 2
-                #for m in range(1,k):
-                    #self.bicounts[j, k, m] += v * vals[m]
-                #self.counts[j,2*k] += v*v
-                #for m in range(1,k):
-                    #self.counts[j, 2*k+m] += v*vals[m]
-            self.counts[j, -1] += change
+                        counts[j, a] += inc
+                        counts[j, b] += inc
+                    m += 1
+            counts[j, -1] += change
             # set the corresponding row of expectation matrix as dirty
-            self.exps[j, -1] = 1
+            exps[j, -1] = 1
             # set the corresponding param row as dirty
-            self.params[j, -1] = 1
+            params[j, -1] = 1
         
     def updateParameters(self):
         """Assume X has continuous parents U = {U1,...,Uk},
@@ -174,13 +174,13 @@ class MultivariateCPD(object):
                 this_cov = self.cov[i]
                 a[0] += np.concatenate(([1], self.exps[i, 1:k+1]))
                 b[0] = self.exps[i, 0]
-                for j in range(1, k+1):
+                for j in xrange(1, k+1):
                     a[j] += np.concatenate(([self.exps[i, j]], this_coe[j, 1:]))
                     b[j] = this_coe[0, j]
                 beta = np.linalg.solve(a, b)
                 var = this_cov[0, 0]
-                for j in range(1, k+1):
-                    for k in range(1, k+1):
+                for j in xrange(1, k+1):
+                    for k in xrange(1, k+1):
                         var -= beta[j] * beta[k] * this_cov[j, k]
                 self.params[i, :-1] = np.concatenate((beta, [var**.5]))
                 # reset dirty bit
