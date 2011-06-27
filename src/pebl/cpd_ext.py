@@ -217,9 +217,13 @@ class MultivariateCPD(object):
         return self.cov[c, x, x]
 
     def condProb(self, a_case):
-        def gaussian(dist, sigma):
-            exp = math.e**(-dist**2/(2*sigma**2))
+        def gaussian(x, mu, sigma):
+            exp = math.e**(-(x-mu)**2/(2*sigma**2))
             return (1/(sigma*(2*math.pi)**.5))*exp
+
+        def gaussprob(x, mu, sigma):
+            delta = mu * 0.001
+            return delta*gaussian(x, mu, sigma)
 
         a_case = np.array(a_case)
         idx = np.dot(a_case[self.discrete_parents].astype(int), self.offsets)
@@ -227,10 +231,11 @@ class MultivariateCPD(object):
         x = a_case[0]
 
         this_param = self.params[idx]
-        mean = this_param[0]
+        mu = this_param[0]
         for b,u in izip(this_param[1:-2], cont_parent_values):
-            mean += b*u
+            mu += b*u
         sigma = this_param[-2]
 
-        return gaussian(x-mean, sigma)
+        return gaussian(x, mu, sigma)
+        #return gaussprob(x, mu, sigma)
 

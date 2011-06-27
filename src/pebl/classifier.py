@@ -2,8 +2,6 @@
 
 """
 
-import numpy as np
-
 class Classifier(object):
 
     def __init__(self, learner_):
@@ -20,6 +18,7 @@ class Classifier(object):
             if p > max_prob:
                 max_prob = p
                 max_idx = i
+        #if max_idx == -1: import pdb; pdb.set_trace()
         return max_idx
 
     def inference(self, a_case):
@@ -46,10 +45,13 @@ class Classifier(object):
             cond_class_probs[c] = self.jointProb(tmp_case)
             Pcase += cond_class_probs[c]
 
+        #for c in cond_class_probs: 
+            #if c > 1: print c
         for c in range(num_cls):
-            cond_class_probs[c] /= Pcase
+            if Pcase > 0:
+                cond_class_probs[c] /= Pcase
 
-        #import pdb; pdb.set_trace()
+        #if cond_class_probs[0] != cond_class_probs[0] : import pdb; pdb.set_trace()
         return cond_class_probs
 
     def jointProb(self, a_case):
@@ -58,13 +60,10 @@ class Classifier(object):
         parents = self.network.edges.parents 
         for attr_idx, attr_val in enumerate(a_case):
             this_cpd = self.cpd[attr_idx]
-            #j = np.dot([attr_val] + \
-                           #[a_case[pai] for pai in parents(attr_idx)], \
-                       #this_cpd.offsets)
-            #p *= this_cpd.probs[j, attr_val]
-            #p *= this_cpd.condProb(j, attr_val)
             this_case = [attr_val] + \
                            [a_case[pai] for pai in parents(attr_idx)]
+            #cp = this_cpd.condProb(this_case)
+            #if cp == 0 or cp > 1: import pdb; pdb.set_trace()
             p *= this_cpd.condProb(this_case)
 
         return p
