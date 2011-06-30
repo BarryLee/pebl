@@ -50,7 +50,7 @@ class CannotOrientException(Exception): pass
 
 class TANClassifierLearner(ClassifierLearner):
 
-    def __init__(self, data_=None, prior_=None, **kw):
+    def __init__(self, data_=None, prior_=None, local_cpd_cache=None, **kw):
         super(TANClassifierLearner, self).__init__(data_)
         # a constant needed by later calculations
         self.inv_log2 = 1.0 / math.log(2)

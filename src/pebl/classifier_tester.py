@@ -66,7 +66,6 @@ class ClassifierTester(object):
                 for j in range(self.data.variables[-1].arity):
                     if i==j: continue
                     breakdown[i]['f'][j] = 0
-            #print breakdown
         num_pass = num_fail = 0
         for ob in obs:
             a_case, real_cls = ob[:-1], ob[-1]
@@ -103,7 +102,7 @@ class ClassifierTester(object):
     def getScore(self):
         return self.result.accuracy
 
-def cross_validate(data, classifier_type="tan", test_ratio=0.05, runs=1, verbose=False):
+def cross_validate(data, classifier_type="tan", test_ratio=0.3, runs=1, verbose=False, **kw):
     def divide_data(data, test_ratio):
         trainset = []
         testset = []
@@ -135,7 +134,7 @@ def cross_validate(data, classifier_type="tan", test_ratio=0.05, runs=1, verbose
         print 'run #%s' % (i+1)
         trainset, testset = divide_data(data, test_ratio)
         #learner = classifier.ClassifierLearner(trainset)
-        learner = classifier_picker(classifier_type)(trainset)
+        learner = classifier_picker(classifier_type)(trainset, **kw)
         learner.run()
         cfr = Classifier(learner)
         tester = ClassifierTester(cfr, testset)
@@ -165,7 +164,9 @@ def cross_validate(data, classifier_type="tan", test_ratio=0.05, runs=1, verbose
             fail_breakdown(b1, num_fail)
     print "Max score: %s" % max(scores)
     print "Min score: %s" % min(scores)
-    print "Average score: %s" % (sum(scores)/len(scores))
+    final_score = sum(scores)/len(scores)
+    print "Average score: %s" % (final_score)
+    return final_score
 
 if __name__ == "__main__":
     # run a cross validation
