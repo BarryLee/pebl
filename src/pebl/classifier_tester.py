@@ -102,7 +102,7 @@ class ClassifierTester(object):
     def getScore(self):
         return self.result.accuracy
 
-def cross_validate(data, classifier_type="tan", test_ratio=0.3, runs=1, verbose=False, **kw):
+def cross_validate(data, classifier_type="tan", test_ratio=0.05, runs=1, verbose=False, **kw):
     def divide_data(data, test_ratio):
         trainset = []
         testset = []
@@ -127,8 +127,7 @@ def cross_validate(data, classifier_type="tan", test_ratio=0.3, runs=1, verbose=
         return cls
 
     scores = []
-    if verbose:
-        results = []
+    results = []
     for i in range(runs):
         print
         print 'run #%s' % (i+1)
@@ -141,8 +140,7 @@ def cross_validate(data, classifier_type="tan", test_ratio=0.3, runs=1, verbose=
         tester.run(verbose=verbose)
         tester.report()
         scores.append(tester.getScore())
-        if verbose:
-            results.append(tester.getResult())
+        results.append(tester.getResult())
 
     if verbose:
         bs = [r.breakdown for r in results]
@@ -164,8 +162,11 @@ def cross_validate(data, classifier_type="tan", test_ratio=0.3, runs=1, verbose=
             fail_breakdown(b1, num_fail)
     print "Max score: %s" % max(scores)
     print "Min score: %s" % min(scores)
-    final_score = sum(scores)/len(scores)
-    print "Average score: %s" % (final_score)
+    avg_score = sum(scores)/len(scores)
+    print "Average score: %s" % avg_score
+    final_score = sum([r.num_pass for r in results])/\
+            float(sum([r.num_testcase for r in results]))
+    print "Normalized score: %s" % final_score
     return final_score
 
 if __name__ == "__main__":

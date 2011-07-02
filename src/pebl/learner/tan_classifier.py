@@ -78,8 +78,8 @@ class TANClassifierLearner(ClassifierLearner):
             return super(TANClassifierLearner.MultinomialJointCPD, self)._condProb(j, k, alpha_ij)
 
 
-    def __init__(self, data_=None, prior_=None, **kw):
-        super(TANClassifierLearner, self).__init__(data_)
+    def __init__(self, data_=None, prior_=None, local_cpd_cache=None, **kw):
+        super(TANClassifierLearner, self).__init__(data_, prior_, local_cpd_cache)
         # a constant needed by later calculations
         self.inv_log2 = 1.0 / math.log(2)
 

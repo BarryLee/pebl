@@ -1,7 +1,4 @@
 #!/usr/bin/env python
-"""Transform data from UCI repo to pebl format.
-
-"""
 
 def parse_names(namesfile): 
     nf = open(namesfile)
@@ -30,7 +27,7 @@ def parse_names(namesfile):
     names.append('cls')
     return names, specs
 
-def uci2pebl(dataset, ofile):
+def uci2pebl(dataset, ofile, keep_missing=False):
     #import pdb; pdb.set_trace()
     namesfile = dataset + '.names'
     names, specs = parse_names(namesfile)
@@ -51,10 +48,11 @@ def uci2pebl(dataset, ofile):
     i = 0
     for line in ifile:
         if line.strip() == '': continue
+        if '?' in line and not keep_missing: continue
         vals, cls = [s.strip() for s in line.rsplit(',', 1)]     
         # replace the string value of each attr with a 
         #   integer (if necessary).
-        vals = vals.split(',')
+        vals = [v.strip() for v in vals.split(',')]
         for j,v in enumerate(vals):
             spec = specs[names[j]]
             if type(spec) is str: continue

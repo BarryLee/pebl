@@ -46,31 +46,36 @@ class MultinomialJointCPD(MultinomialCPD):
             alpha_ij = [1] * self.data.variables[0].arity * self.data.variables[1].arity
         return super(MultinomialJointCPD, self)._condProb(j, k, alpha_ij)
 
-class CannotOrientException(Exception): pass
+#class CannotOrientException(Exception): pass
+
+class TANClassifierLearnerException(Exception): pass
 
 class TANClassifierLearner(ClassifierLearner):
 
     def __init__(self, data_=None, prior_=None, local_cpd_cache=None, **kw):
-        super(TANClassifierLearner, self).__init__(data_)
+        super(TANClassifierLearner, self).__init__(data_, prior_, local_cpd_cache)
         # a constant needed by later calculations
         self.inv_log2 = 1.0 / math.log(2)
+        self.continuous_attrs = [i for i,v in enumerate(data_.variables[:-1]) 
+                                       if var_type(v) == 'continuous']
+        self.discrete_attrs = [i for i,v in enumerate(data_.variables[:-1]) 
+                                       if var_type(v) == 'discrete']
+        if len(self.continuous_attrs) == 0 or len(self.discrete_attrs) == 0:
+            self._validEdge = lambda x,y: True
+        else:
+            self._validEdge = lambda x,y: not (x in self.continuous_attrs and
+                                                 y in self.discrete_attrs)
 
     def _run(self):
         self._buildCpd()
         self.cmi = self._condMutualInfoAll()
         full_graph = self._createFullGraph()
 
-        num_attr = self.num_attr
-        for root_node in xrange(num_attr):
-            try:
-                min_span_tree = self._minSpanTree(full_graph, root_node)
-                self.network = self._addClassParent(min_span_tree)
-                self.learnParameters()
-                self.result.add_network(self.network, 0)
-                break
-            except CannotOrientException, e:
-                if root_node == num_attr - 1: raise e
-                continue
+        min_span_tree_edges = self._minSpanTree(full_graph, 0)
+        #min_span_tree_edges = min_span_tree(self.num_attr, full_graph, 0)
+        self.network = self._addClassParent(min_span_tree_edges)
+        self.learnParameters()
+        self.result.add_network(self.network, 0)
 
     def _buildCpd(self):
         """Build cpd from data.
@@ -95,7 +100,7 @@ class TANClassifierLearner(ClassifierLearner):
         
         if var_type(variables_[nodes[0]]) == 'discrete':
             if [v for v in variables_[[nodes[1:]]] if var_type(v) == 'continuous']:
-                raise ClassifierLearnerException, "Discrete node can't have continuous parent."
+                raise TANClassifierLearnerException, "Discrete node can't have continuous parent."
             return self._cpd_cache.setdefault(idx,
                 MultinomialCPD(self.data._subset_ni_fast(nodes)))
         # node is continuous
@@ -201,7 +206,38 @@ class TANClassifierLearner(ClassifierLearner):
         return -0.5 * cmi_xy * self.inv_log2
 
     def _condMutualInfoCD(self, x, y):
-        pass
+        """Calculate conditional mutual information between a continuous 
+        variable and a discrete variable.
+
+        For continuous variable X and discrete variable Y, we use the 
+        following equation:
+                             ___                     ___
+                             \                       \
+            I(X,Y|C) = 1/2 * /__ P(c) *[(logV(X|c) - /__ P(y|c) * logV(X|y,c)]
+                              c                       y
+
+        """
+        # make sure x is continuous and y is discrete
+        cpd_xy = self.cpdXYC[(x, y)]
+        if var_type(self.data.variables[x]) == 'discrete':
+            x, y = y, x
+            
+        arity_y = self.data.variables[y].arity
+        num_cls = self.num_cls
+        cpd_x, cpd_y = self.cpdXC[x], self.cpdXC[y]
+
+        cmi_xy = 0
+        for vc in xrange(num_cls):
+            Pc = self.probC(vc)
+            Vx_c = cpd_x.condVariance(0, vc)
+            b = math.log(Vx_c)
+            for vy in xrange(arity_y):
+                Vx_yc = cpd_xy.condVariance(0, (vy,vc))
+                Py_c = cpd_y.condProb([vy, vc])
+                b -= Py_c * math.log(Vx_yc)
+            cmi_xy += Pc * b
+        #cmi_xy *= 1/2 * self.inv_log2
+        return cmi_xy * 1/2 * self.inv_log2
 
     def probC(self, c):
         return self.cpdC.condProb([c])
@@ -214,13 +250,38 @@ class TANClassifierLearner(ClassifierLearner):
                 # use the inverse of cmi as weight so we can apply
                 #   a minimum spantree algorithm to actually derive
                 #   a maximum spantree
-                edges.append(WeightedEdge(i, j, -self.cmi[i,j]))
-                #edges.append(WeightedEdge(j, i, -self.cmi[i,j]))
+                #e = WeightedEdge(i, j, -self.cmi[i,j])
+                #edges.append(e)
+                edges.append(WeightedEdge(j, i, -self.cmi[i,j]))
         #edgeset = WeightedEdgeSet(self.num_attr)
         #edgeset.add_many(edges)
         #net = WeightedNetwork(edgeset)
         #return net
+        edges = self._filterEgdes(edges)
         return edges
+
+    def _filterEgdes(self, edges):
+        new_edges = []
+        dests = {}
+        _validEdge = self._validEdge    
+        for e in edges:
+            if not _validEdge(e.src, e.dest):
+                e.invert()
+                e.no_invert = True
+            elif not _validEdge(e.dest, e.src):
+                e.no_invert = True
+        for e in edges:
+            if hasattr(e, 'no_invert'):
+                e1 = dests.setdefault(e.dest, e)
+                if e != e1:
+                    # dest conflict! we prefer smaller weight
+                    if e.weight < e1.weight:
+                        dests[e.dest] = e
+            else:
+                new_edges.append(e)     
+        for d,e in dests.iteritems():
+            new_edges.append(e)
+        return new_edges
 
     def _minSpanTree(self, edges, root_vertex):
         def orient_edges(min_tree_edges, root):
@@ -279,7 +340,7 @@ class TANClassifierLearner(ClassifierLearner):
                     new_edges.append(e)
                     union(vertex_set, set_u, set_v)
 
-            orient_edges(new_edges, root_vertex)
+            orient_edges(new_edges, root)
             return new_edges
 
         min_span_tree_edges = get_directed_edges(edges, self.num_attr, root_vertex)

@@ -70,7 +70,6 @@ class MultivariateCPD(object):
     """
     def __init__(self, data_):
         self.data = data_
-        #import pdb; pdb.set_trace()
         # the indices and arities of discrete variables in parent nodes
         self.discrete_parents = [i+1 for i,v in enumerate(data_.variables[1:]) 
                                        if var_type(v) == 'discrete']
@@ -101,6 +100,7 @@ class MultivariateCPD(object):
         # matrix for expectations, derived from counts, the last 
         #   column is used as dirty bit
         self.exps = np.zeros((qi, nc + 1))
+        self.exps[:,-1] = [1] * qi
         #self.uncond_exps = np.zeros((1, num_cv))
         #self.dirty_pa = [0] * qi
         # covariance and coexpectation matrix for each value of discrete parents 
@@ -121,14 +121,13 @@ class MultivariateCPD(object):
 
     def _change_counts(self, observations, change=1):
         indices = np.dot(observations[:, self.discrete_parents].astype(int), self.offsets)
-        continuous_values = observations[ :, [0]+self.continuous_parents ]
+        continuous_values = observations[ :, [0]+self.continuous_parents ].astype(float)
 
         num_cv = self.num_cv
         counts = self.counts
         exps = self.exps
         params = self.params
 
-        #if num_cv > 1: import pdb; pdb.set_trace()
         for j,vals in izip(indices, continuous_values):
             for k,v in enumerate(vals):
                 counts[j, k] += v
@@ -152,18 +151,23 @@ class MultivariateCPD(object):
         
     def updateParameters(self):
         """Assume X has continuous parents U = {U1,...,Uk},
+
             P(X|u) = N(b0 + b1u1 + ... + bkuk; sigma^2)
+
         our task is to learn the parameters {b0, ..., bk, sigma}.
         We derive bi by solve linear matrix equation:
+
             b0*E(Ui) + b1*E(U1*Ui) + ... + bk*E(Uk*Ui) = E(X*Ui),
             i in [1, k].
+
         Then we derive V using the equation:
-                       ___  ___
-                       \    \
+                             ___  ___
+                             \    \
             sigma^2 = V(X) - /__  /__ bi*bj*Cov(Ui,Uj)
-                        i    j
+                              i    j
 
         Probabilistic Graphical Models Principles and Techniques. P728
+
         """
         k = self.num_cv - 1
         a = np.zeros((k+1, k+1))
@@ -191,30 +195,51 @@ class MultivariateCPD(object):
 
     def _updateStatistics(self):
         # sum up all rows to calculate unconditional expectations
-        #total = np.sum(self.counts, axis=0)
-        #self.uncond_exps = total[:-1] / total[-1]
+        total = np.sum(self.counts, axis=0)
+        self.uncond_exps = total[:-1] / total[-1]
         
         num_cv = self.num_cv
         #for er,cr,co,ce in izip(self.exps, self.counts, self.cov, self.coe):
         for i,er in enumerate(self.exps):
-            #import pdb; pdb.set_trace()
             if er[-1]:
                 cr = self.counts[i]
-                er[:-1] = cr[:-1] / cr[-1]
+                #er[:-1] = cr[:-1] / cr[-1]
+                if cr[-1] > 0:
+                    er[:-1] = cr[:-1] / cr[-1]
+                else:
+                    import pdb; pdb.set_trace()
+                    er[:-1] = self.uncond_exps
                 # update covariance matrix
                 ce = self.coe[i] = er[num_cv:-1].reshape((num_cv, num_cv))
                 co = self.cov[i] = ce.copy()
                 for j, r in enumerate(co):
                     for k, v in enumerate(r):
-                        #co[j, k] = float(v) - er[j] * er[k]
-                        self.cov[i, j, k] = v - er[j] * er[k]
+                        cov = v - er[j] * er[k]
+                        if cov == 0:
+                            if v == 0:
+                                v = 1
+                            cov = 0.01 * v
+                        self.cov[i, j, k] = cov
+                        #self.cov[i, j, k] = v - er[j] * er[k]
                 er[-1] = 0
 
-    def condCovariance(self, x, y, c):
-        return self.cov[c, x, y]
+    def condCovariance(self, x, y, p):
+        if type(p) is not int:
+            p = np.dot(p, self.offsets)
+        v = self.cov[p, x, y]
+        #if v == 0:
+            ##import pdb; pdb.set_trace()
+            #e = self.coe[p, x, y]
+            #if e:
+                #v = 0.01 * e
+            #else:
+                #v = 0.01
+        return v
+        #return self.cov[p, x, y]
 
-    def condVariance(self, x, c):
-        return self.cov[c, x, x]
+    def condVariance(self, x, p):
+        #return self.cov[p, x, x]
+        return self.condCovariance(x, x, p)
 
     def condProb(self, a_case):
         def gaussian(x, mu, sigma):
@@ -225,7 +250,7 @@ class MultivariateCPD(object):
             delta = mu * 0.001
             return delta*gaussian(x, mu, sigma)
 
-        a_case = np.array(a_case)
+        a_case = np.array(a_case).astype(float)
         idx = np.dot(a_case[self.discrete_parents].astype(int), self.offsets)
         cont_parent_values = a_case[ self.continuous_parents ]
         x = a_case[0]
@@ -236,6 +261,8 @@ class MultivariateCPD(object):
             mu += b*u
         sigma = this_param[-2]
 
+        #if gaussian(x, mu, sigma) == 0 or math.isnan(gaussian(x, mu, sigma)):
+            #import pdb; pdb.set_trace()
         return gaussian(x, mu, sigma)
         #return gaussprob(x, mu, sigma)
 
