@@ -63,6 +63,7 @@ class Classifier(object):
             this_case = [attr_val] + \
                            [a_case[pai] for pai in parents(attr_idx)]
             #cp = this_cpd.condProb(this_case)
+            #if p * cp != p * cp: import pdb; pdb.set_trace()
             #if cp == 0 or cp > 1: import pdb; pdb.set_trace()
             p *= this_cpd.condProb(this_case)
 

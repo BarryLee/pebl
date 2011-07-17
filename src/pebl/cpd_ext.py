@@ -186,6 +186,7 @@ class MultivariateCPD(object):
                 for j in xrange(1, k+1):
                     for k in xrange(1, k+1):
                         var -= beta[j] * beta[k] * this_cov[j, k]
+                if var**.5 != var**.5: import pdb; pdb.set_trace()
                 self.params[i, :-1] = np.concatenate((beta, [var**.5]))
                 # reset dirty bit
                 self.params[i, -1] = 0
@@ -204,23 +205,27 @@ class MultivariateCPD(object):
             if er[-1]:
                 cr = self.counts[i]
                 #er[:-1] = cr[:-1] / cr[-1]
-                if cr[-1] > 0:
+                if cr[-1] > 1:
                     er[:-1] = cr[:-1] / cr[-1]
+                elif cr[-1] == 1:
+                    er[:-1] = (cr[:-1] + self.uncond_exps) / 2
                 else:
-                    import pdb; pdb.set_trace()
+                    #import pdb; pdb.set_trace()
                     er[:-1] = self.uncond_exps
                 # update covariance matrix
                 ce = self.coe[i] = er[num_cv:-1].reshape((num_cv, num_cv))
-                co = self.cov[i] = ce.copy()
-                for j, r in enumerate(co):
+                #co = self.cov[i] = ce.copy()
+                for j, r in enumerate(ce):
                     for k, v in enumerate(r):
-                        cov = v - er[j] * er[k]
-                        if cov == 0:
-                            if v == 0:
-                                v = 1
-                            cov = 0.01 * v
-                        self.cov[i, j, k] = cov
-                        #self.cov[i, j, k] = v - er[j] * er[k]
+                        #cov = v - er[j] * er[k]
+                        # We cannot let variance/covariance be 0 (by definition of
+                        #  normal distribution)
+                        #if cov == 0:
+                            #if v == 0:
+                                #v = 1
+                            #cov = 0.01 * v
+                        #self.cov[i, j, k] = cov
+                        self.cov[i, j, k] = v - er[j] * er[k]
                 er[-1] = 0
 
     def condCovariance(self, x, y, p):

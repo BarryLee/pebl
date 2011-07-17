@@ -70,9 +70,11 @@ def min_span_tree(num_vertex, edges, root_vertex, has_constraint=False):
         max_iters = len(min_tree_edges) + 1
         last_ancestor = -1
         this_ancestor = root
+        for e in min_tree_edges:
+            e.oriented = 0
         for i in xrange(max_iters):
             try:
-                oriented = orient_edges_with_constraint(
+                orient_edges_with_constraint(
                             min_tree_edges, 
                             last_ancestor, 
                             this_ancestor, 
@@ -80,19 +82,16 @@ def min_span_tree(num_vertex, edges, root_vertex, has_constraint=False):
             except BadRootException, e:
                 last_ancestor = this_ancestor
                 this_ancestor = root = e.new_root
+                for e in min_tree_edges:
+                    e.oriented = 0
                 if i == max_iters - 1:
                     import pdb; pdb.set_trace()
                 continue
             except ConflictEdgeException:
                 raise
-        return oriented
 
     def orient_edges_with_constraint(edges_to_orient, 
                                      last_ancestor, this_ancestor, root):
-        oriented = []
-        
-        for e in edges_to_orient:
-            e.oriented = 0
 
         for i,e in enumerate(edges_to_orient):
             if e.oriented == 1:
@@ -109,10 +108,8 @@ def min_span_tree(num_vertex, edges, root_vertex, has_constraint=False):
                 e.invert()
                 e.oriented = 1
             if e.oriented == 1:
-                if e in oriented: import pdb; pdb.set_trace()
-                oriented.append(e)
                 try:
-                    oriented += orient_edges_with_constraint(
+                    orient_edges_with_constraint(
                                     edges_to_orient[:i] + edges_to_orient[i+1:],
                                     last_ancestor,
                                     this_ancestor,
@@ -120,8 +117,6 @@ def min_span_tree(num_vertex, edges, root_vertex, has_constraint=False):
                 except ConflictEdgeException, err:
                     err.add(e)
                     raise err
-
-        return oriented
 
     def init_set(num_vertex):
         return [set([i]) for i in xrange(num_vertex)]
@@ -156,8 +151,8 @@ def min_span_tree(num_vertex, edges, root_vertex, has_constraint=False):
                 new_edges.append(e)
                 union(vertex_set, set_u, set_v)
 
-        #orient_edges(new_edges, root)
-        new_edges = orient_edges(new_edges, root)
+        orient_edges(new_edges, root)
+        #new_edges = orient_edges(new_edges, root)
         return new_edges
 
     max_iters = len(edges) + 1

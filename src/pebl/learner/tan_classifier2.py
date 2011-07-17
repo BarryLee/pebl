@@ -202,6 +202,8 @@ class TANClassifierLearner(ClassifierLearner):
             Pc = self.probC(vc)
             rho2 = cpd_xy.condCovariance(0, 1, vc) ** 2 / \
                     (cpd_xy.condVariance(0, vc) * cpd_xy.condVariance(1, vc))
+            # dirty hack
+            if not rho2 < 1: rho2 = 0.9
             cmi_xy += Pc * math.log(1 - rho2)
         return -0.5 * cmi_xy * self.inv_log2
 
