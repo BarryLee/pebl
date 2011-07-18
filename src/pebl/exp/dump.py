@@ -2,12 +2,13 @@
 
 import sys
 import os
-from time import time
+from time import time, strftime
 
 tag = 'dump'
 tmp_ = '/tmp'
 tmp_folder = lambda x: '%s/%s%s%s' % (tmp_, x, tag, time())
-archive_name = lambda ds: '%s%s.tgz' % ('_'.join([d.rsplit('/',1)[1].split(tag)[0] for d in ds]), tag)
+t_fmt = '%m%d_%H%M'
+archive_name = lambda ds: '%s%s%s.tgz' % ('_'.join([d.rsplit('/',1)[1].split(tag)[0] for d in ds]), tag, strftime(t_fmt))
 
 def dump(rrdfile, rrdxml):
     os.system('rrdtool dump %s %s' % (rrdfile, rrdxml))

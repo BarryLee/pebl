@@ -50,6 +50,7 @@ class WrapperTANClassifierLearner(ClassifierLearner):
                 #local_cpd_cache_ = SharedLocalCPDCache(self._cpd_cache._cpd_cache, tmp)
                 score = cross_validate(self.data.subset(tmp), 
                                        #local_cpd_cache=local_cpd_cache_,
+                                       score_type='WC',
                                        runs=10)
                 if score > self.max_score:
                     self.max_score = score

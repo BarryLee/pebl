@@ -38,7 +38,9 @@ class TestResult(object):
         'TA'    :   {'name' : 'total accuracy',
                      'func' : '_taScore'},
         'BA'    :   {'name' : 'balanced accuracy',
-                     'func' : '_baScore'}
+                     'func' : '_baScore'},
+        'WC'    :   {'name' : 'worst class',
+                     'func' : '_wcScore'}
     }
 
     def __init__(self):
@@ -47,14 +49,21 @@ class TestResult(object):
     def _taScore(self):
         return float(self.num_pass) / self.num_testcase
         
-    def _baScore(self):
+    def _accuracyByClass(self):
         dt = self.detail
 
         num_pass_cls = [dt[k]['p'] for k in dt.keys()]
         num_test_cls = [dt[k]['f']['s'] + dt[k]['p'] for k in dt.keys()]
         
-        ac_cls = [pc*tc and pc/float(tc) or 0 for pc,tc in izip(num_pass_cls, num_test_cls)]
+        return [pc*tc and pc/float(tc) or 0 for pc,tc in izip(num_pass_cls, num_test_cls)]
+
+    def _baScore(self):
+        ac_cls = self._accuracyByClass()
         return sum(ac_cls) / len(ac_cls)
+
+    def _wcScore(self):
+        ac_cls = self._accuracyByClass()
+        return min(ac_cls)
 
     def score(self, score_type):
         st = self._score_type_.get(score_type)
