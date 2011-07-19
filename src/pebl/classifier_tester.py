@@ -5,9 +5,10 @@
 from random import random
 from itertools import izip
 
+from numpy.linalg import LinAlgError
+
 #from pebl.learner import classifier
 from pebl.classifier import Classifier
-
 
 def fail_breakdown(b1):
     print 'failed tests break down:'
@@ -187,10 +188,13 @@ def cross_validate(data, classifier_type="tan", test_ratio=0.05, runs=1, verbose
         trainset, testset = divide_data(data, test_ratio)
         #learner = classifier.ClassifierLearner(trainset)
         learner = classifier_picker(classifier_type)(trainset, **kw)
-        learner.run()
-        cfr = Classifier(learner)
-        tester = ClassifierTester(cfr, testset)
-        tester.run()
+        try:
+            learner.run()
+            cfr = Classifier(learner)
+            tester = ClassifierTester(cfr, testset)
+            tester.run()
+        except LinAlgError:
+            continue
         tester.report(False, score_type)
         scores.append(tester.getScore(score_type)[1])
         results.append(tester.getResult())
