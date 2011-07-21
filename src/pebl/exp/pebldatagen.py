@@ -9,6 +9,7 @@ from process_log import process as extract_log
 logging.basicConfig(level=logging.INFO, stream=sys.stdout)
 
 def gen_vars(rrd_repos):
+    #import pdb; pdb.set_trace()
     black_list = [
                   #'cpu_usage', 'dom0_cpu_usage', 
                   'cpu_idle', 'dom0_cpu_idle',
@@ -108,9 +109,9 @@ def run(log_archive, cls_specs, rrd_repos, pebl_file):
 
 
 class_specs = {
-    0   :   (0, 6e5),
+    0   :   (0, 4e5),
     #1   :   (2e5, 8e5),
-    1   :   (6e5, float('inf'))
+    1   :   (4e5, float('inf'))
 }
 
 from optparse import OptionParser
