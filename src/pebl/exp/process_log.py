@@ -42,10 +42,11 @@ def parse(log):
         #if int(l[-1]) > 1000000:
             #ret.append([int(l[1]), int(l[-1])])
     lf.close()
-    ret.items().sort()
+    ret = ret.items()
+    ret.sort()
     #select(ret)
-    shrink(ret, step)
-    return ret.items()
+    ret = shrink(ret, step)
+    return ret
 
 #def select(pairs):
     #sigma = 0.141
@@ -59,15 +60,16 @@ def parse(log):
     
 def shrink(pairs, step):
     base = 0
-    for t, v in pairs.items():
-        if base == 0 or t - base >= step:
+    ret = []
+    base, tmp_max = pairs[0]
+    for t, v in pairs:
+        if t - base >= step:
+            ret.append((base, tmp_max))
             base = t
             tmp_max = v
-        else:
-            if v > tmp_max:
-                pairs[base] = v
-                tmp_max = v
-            del pairs[t]
+        elif v > tmp_max:
+            tmp_max = v
+    return ret
         
 def select(recs):
     thresh = 1e5
@@ -104,7 +106,7 @@ def process(log_archive, rm_tmp=False):
                 fp = fp[:-3]
             selected_records += parse(fp)
 
-    selected_records = select(selected_records)
+    #selected_records = select(selected_records)
 
     if rm_tmp:
         rm_cmd = "rm -rf %s" % tf

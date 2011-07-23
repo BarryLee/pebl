@@ -39,30 +39,33 @@ def collect(log_v, rrd_files):
 
     for (t, v) in log_v:
         #t = pair[0]
-        ob = []
-        for rrd in rrd_files:
-            rdata = rrdfetch_wrapper(rrd, cf, step, t-step, t+step)[1]
-            closest = None
-            min_offset = step * 2
-            for each in rdata[::-1]:
-                if each[1] is not None:
-                    if abs(each[0] - t) < min_offset:
-                        min_offset = abs(each[0] - t)
-                        closest = each
-                    #break
-                
-            #if abs(each[0] - t) > step/2.0:
-                #logging.warning("offset too large: %s" % (abs(each[0] - t),))
-            #ob.append(each[1])
-            if closest is None:
-                if rdata[0][1] is None:
-                    logging.warning("None data: %s at %s, rt is %s" % (rrd, t, v))
-                    continue
-            elif abs(closest[0] - t) > step/2.0:
-                logging.warning("offset too large: %s" % (abs(closest[0] - t),))
-            ob.append(closest[1])
-        ob.append(v)
-        obs.append(ob)
+        try:
+            ob = []
+            for rrd in rrd_files:
+                rdata = rrdfetch_wrapper(rrd, cf, step, t-step, t+step)[1]
+                closest = None
+                min_offset = step * 2
+                for each in rdata[::-1]:
+                    if each[1] is not None:
+                        if abs(each[0] - t) < min_offset:
+                            min_offset = abs(each[0] - t)
+                            closest = each
+                        #break
+                    
+                #if abs(each[0] - t) > step/2.0:
+                    #logging.warning("offset too large: %s" % (abs(each[0] - t),))
+                #ob.append(each[1])
+                if closest is None:
+                    if rdata[0][1] is None:
+                        logging.warning("None data: %s at %s, rt is %s" % (rrd, t, v))
+                        continue
+                elif abs(closest[0] - t) > step/2.0:
+                    logging.warning("offset too large: %s" % (abs(closest[0] - t),))
+                ob.append(closest[1])
+            ob.append(v)
+            obs.append(ob)
+        except rrdtool.error:
+            continue
 
     return obs
 

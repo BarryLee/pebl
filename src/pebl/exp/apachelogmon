@@ -1,0 +1,115 @@
+#!/usr/bin/env python
+
+from daemonize import startstop
+
+import fcntl
+import os
+import select
+import subprocess
+import time
+
+from random import random
+
+class AccessLogMonitor(object):
+
+    def __init__(self, log_file, start=0, sample_interval=15, 
+                 threshold=1e6, ratio=0.0001, output='/dev/null'):
+        self.log_file = log_file
+        self.threshold = threshold
+        self.ratio = ratio
+        self.data_buffer = {}
+        self.sample_interval = sample_interval
+        self.last_collect = start
+        self.output = open(output, 'a+')
+
+    def run(self):
+        f = open(self.log_file)
+        fd = f.fileno()
+        oldflags = fcntl.fcntl(fd, fcntl.F_GETFL)
+        #print bin(oldflags), bin(os.O_NONBLOCK)
+        #print bin(oldflags | os.O_NONBLOCK)
+        fcntl.fcntl(fd, fcntl.F_SETFL, oldflags | os.O_NONBLOCK)
+        files = [f]
+        # process old data
+        f.read()
+
+        while True:
+            #print rs
+            rs, ws, es = select.select(files, [], [])
+            if f in rs:
+                new_data = ''
+                while True:
+                    try:
+                        chunk = f.readline()
+                        if not chunk:
+                            break
+                        new_data += chunk 
+                    except IOError, e:
+                        #print e
+                        break
+                #yield data
+                if len(new_data):
+                    #process_lines(data, threshold)
+                    #p_func(data, threshold)
+                    self.readlines(new_data)
+            time.sleep(1)
+
+    def collect(self, msg):
+        print msg
+        self.output.write(msg+'\n')
+        self.last_collect = time.time()
+
+    def readlines(self, data):
+        #data_buffer = self.data_buffer
+        threshold = self.threshold
+        ratio = self.ratio
+        #last_collect = self.last_collect
+        sample_interval = self.sample_interval
+        for line in data.splitlines():
+            pieces = line.split()
+            t, rt = int(pieces[1]), int(pieces[-1])
+            if rt >= threshold or \
+               t - self.last_collect >= sample_interval or \
+               random() < ratio:
+                self.collect(line)
+                #if rt > data_buffer.set_defaults(t, rt):
+                    #data_buffer[t] = rt
+        self.output.flush()
+        
+    def turnOff(self):
+        self.output.close()
+                 
+def from_config(conf_file):
+    exec(compile(open(conf_file).read(), conf_file, 'exec'))
+    args = locals()
+    
+    log_file = args.get('log_file')
+    if log_file is None:
+        common_log_file_path = ['/var/log/apache2/access.log',
+                                 '/var/log/httpd/access_log']
+        for p in common_log_file_path:
+            if os.path.exists(p):
+                log_file = p
+                break
+    if log_file is None:
+        raise Exception, "Error: cannot determine a access log file."
+
+    threshold = args.get('threshold') * 1e6 or 1e6
+    sample_interval = args.get('sample_interval') or 15
+    ratio = args.get('ratio') or 0.0001
+    output = args.get('output') or '/dev/null'
+
+    return AccessLogMonitor(log_file=log_file, threshold=threshold,
+                            sample_interval=sample_interval, ratio=ratio,
+                            output=output)
+
+if __name__ == '__main__':
+    cfg_file = os.path.dirname(os.path.abspath(__file__)) + '/' + 'apachelogmon.cfg'
+
+    ofile = '/dev/null'
+    efile = '/tmp/out'
+    pfile = '/tmp/alm.pid'
+    startstop(stdout=ofile, stderr=efile, pidfile=pfile)
+
+    from_config(cfg_file).run()
+    
