@@ -9,6 +9,7 @@ from numpy.linalg import LinAlgError
 
 #from pebl.learner import classifier
 from pebl.classifier import Classifier
+from pebl.learner.classifier import ClassifierLearner
 
 def fail_breakdown(b1):
     print 'failed tests break down:'
@@ -187,7 +188,10 @@ def cross_validate(data, classifier_type="tan", test_ratio=0.05, runs=1, verbose
         print 'run #%s' % (i+1)
         trainset, testset = divide_data(data, test_ratio)
         #learner = classifier.ClassifierLearner(trainset)
-        learner = classifier_picker(classifier_type)(trainset, **kw)
+        if issubclass(classifier_type, ClassifierLearner):
+            learner = classifier_type(trainset, **kw)
+        else:
+            learner = classifier_picker(classifier_type)(trainset, **kw)
         try:
             learner.run()
             cfr = Classifier(learner)

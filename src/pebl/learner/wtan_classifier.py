@@ -67,7 +67,7 @@ class WrapperTANClassifierLearner(ClassifierLearner):
         tan_learner.run()
         self.network = tan_learner.network
         self.cpd = tan_learner.cpd
-        self._learber = tan_learner
+        self._learner = tan_learner
         self.result.add_network(self.network, self.max_score)
 
         # restore output
