@@ -188,10 +188,12 @@ def cross_validate(data, classifier_type="tan", test_ratio=0.05, runs=1, verbose
         print 'run #%s' % (i+1)
         trainset, testset = divide_data(data, test_ratio)
         #learner = classifier.ClassifierLearner(trainset)
-        if issubclass(classifier_type, ClassifierLearner):
+        if type(classifier_type) is str:
+            learner = classifier_picker(classifier_type)(trainset, **kw)
+        elif issubclass(classifier_type, ClassifierLearner):
             learner = classifier_type(trainset, **kw)
         else:
-            learner = classifier_picker(classifier_type)(trainset, **kw)
+            raise Exception, "Invalid classifier type"
         try:
             learner.run()
             cfr = Classifier(learner)
