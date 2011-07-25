@@ -96,14 +96,14 @@ class WrapperClassifierLearner(ClassifierLearner):
             else:
                 assert pick_this_round == pick
                 #assert len(self.attrs_selected) == len(attrs_selected_latest) - 1
-                self.attrs_selected = attrs_selected_latest
+                self.attrs_selected = attrs_selected_latest[:]
         
         for each,score in attrs_selected_each_round:
             each.sort()
             each.append(cls_node)
 
-        #attrs_selected.sort()
-        #attrs_selected.append(cls_node)
+        self.attrs_selected.sort()
+        self.attrs_selected.append(cls_node)
         #self.attrs_selected = attrs_selected
 
         if mute:
