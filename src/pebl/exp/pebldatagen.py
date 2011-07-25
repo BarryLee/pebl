@@ -121,7 +121,7 @@ parser.add_option("-l", "--log", dest="log_archive")
 parser.add_option("-r", "--rrd", action="append", dest="rrd_repos")
 parser.add_option("-d", "--dir", action="append", dest="rrd_dirs")
 parser.add_option("-f", "--file", dest="pebl_file")
-parser.add_option("-t", "--threshold", dest="threshold")
+parser.add_option("-t", "--threshold", dest="threshold", type="float")
 
 (options, args) = parser.parse_args()
 
