@@ -9,7 +9,7 @@ Journal of Approximate Reasoning, 43 (2006) 1–25
 """
 import math
 
-from pebl.learner.classifier import ClassifierLearner
+from pebl.learner.nb_classifier import NBClassifierLearner
 from pebl.cpd_ext import *
 from pebl.weighted_network import *
 
@@ -50,7 +50,7 @@ class MultinomialJointCPD(MultinomialCPD):
 
 class TANClassifierLearnerException(Exception): pass
 
-class TANClassifierLearner(ClassifierLearner):
+class TANClassifierLearner(NBClassifierLearner):
 
     def __init__(self, data_=None, prior_=None, local_cpd_cache=None, **kw):
         super(TANClassifierLearner, self).__init__(data_, prior_, local_cpd_cache)

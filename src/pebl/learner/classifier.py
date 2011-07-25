@@ -69,3 +69,16 @@ class ClassifierLearner(Learner):
         os.system("%s -Tpng -o%s %s" % (dot, outfile, fname))
         os.remove(fname)
 
+    def a2cMutualInfo(self, x):
+        """Compute the mutual info between an attribute and the class.
+        To be overided.
+
+        """
+        pass
+
+    def a2cMutualInfoAll(self):
+        """To be overided.
+
+        """
+        pass
+

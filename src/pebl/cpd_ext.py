@@ -54,6 +54,14 @@ class MultinomialCPD(mcpd):
         
         return float(alpha_ijk + Sijk) / (Nij + Sij)
 
+    def prob(self, k):
+        p = 0.0
+        tc = float(np.sum(self.counts[:,-1]))
+        for j,c in enumerate(self.counts):
+            p += self._condProb(j, k) * (c[-1]/tc)
+
+        return p
+
 def var_type(variable):
     t = 'continuous'
     if hasattr(variable, 'arity'):
@@ -245,6 +253,20 @@ class MultivariateCPD(object):
     def condVariance(self, x, p):
         #return self.cov[p, x, x]
         return self.condCovariance(x, x, p)
+
+    def variance(self, x):
+        num_cv = self.num_cv
+
+        mu_x = 0.0
+        mu_x2 = 0.0
+        tc = 0
+        for j,c in enumerate(self.counts):
+            mu_x += c[x]
+            mu_x2 += c[num_cv*(x+1) + x]
+            tc += c[-1]
+        mu_x /= tc
+        mu_x2 /= tc
+        return mu_x2 - mu_x**2 
 
     def condProb(self, a_case):
         def gaussian(x, mu, sigma):
