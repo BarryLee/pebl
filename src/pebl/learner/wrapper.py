@@ -55,7 +55,7 @@ class WrapperClassifierLearner(ClassifierLearner):
         attrs_selected_latest = self.attrs_selected[:]
 
         self.max_score = -1
-        self.num_attr_selected = 0
+        self.num_attr_selected = len(self.attrs_selected)
         cls_node = self.num_attr
         _stop = self._stop
 
