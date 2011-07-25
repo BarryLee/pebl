@@ -6,18 +6,34 @@ from pebl.classifier_tester import cross_validate
 
 class WrapperClassifierLearner(ClassifierLearner):
 
-    def __init__(self, classifier_type, data_=None, prior_=None, 
+    def __init__(self, classifier_type, data_=None, 
+                 required_attrs=None, prohibited_attrs=None,
                  score_good_enough=1, max_num_attr=None, 
                  default_alg='greedyForward', **kw):
-        super(WrapperClassifierLearner, self).__init__(data_, prior_)
+        super(WrapperClassifierLearner, self).__init__(data_)
         self.classifier_type = classifier_type
         self.score_good_enough = score_good_enough
         self.max_num_attr = max_num_attr or self.num_attr
         self.default_alg = default_alg
+        self.required_attrs = required_attrs or []
+        self.prohibited_attrs = prohibited_attrs or []
 
     def _run(self):
         getattr(self, self.default_alg)()
 
+    def _attrIdx(self, a):
+        assert type(a) in (int, str)
+        if type(a) is int:
+            return a
+        elif type(a) is str:
+            ret = None
+            for i,v in enumerate(self.data.variables):
+                if v.name == a:
+                    ret = i
+                    break
+            if ret: return ret
+            else: raise Exception, "No such variable: %s" % a
+            
     def greedyForward(self, mute=True, stop_no_better=True, **cvargs):
         if mute:
             # supress output
@@ -25,16 +41,25 @@ class WrapperClassifierLearner(ClassifierLearner):
             stdout = os.dup(sys.stdout.fileno())
             os.dup2(so.fileno(), sys.stdout.fileno())
 
+        attrs_left = range(self.num_attr)
+        for a in self.prohibited_attrs:
+            attrs_left.remove(self._attrIdx(a))
+
+        self.attrs_selected = []
+        for a in self.required_attrs:
+            a = self._attrIdx(a)
+            attrs_left.remove(a)
+            self.attrs_selected.append(a)
+
+        attrs_selected_each_round = self.attrs_selected_each_round = []
+        attrs_selected_latest = self.attrs_selected[:]
+
         self.max_score = -1
         self.num_attr_selected = 0
-        self.attrs_selected = []
-        attrs_selected_each_round = self.attrs_selected_each_round = []
-        attrs_selected_latest = []
-        attrs_left = range(self.num_attr)
         cls_node = self.num_attr
         _stop = self._stop
 
-        while len(attrs_selected_latest) < self.num_attr and not _stop():
+        while len(attrs_left) and not _stop():
             pick = -1
             max_score_this_round = -1
             for i,a in enumerate(attrs_left):
