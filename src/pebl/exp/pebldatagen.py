@@ -111,12 +111,6 @@ def run(log_archive, cls_specs, rrd_repos, pebl_file):
     write_to_file(vars, obs, pebl_file)
 
 
-class_specs = {
-    0   :   (0, 4e5),
-    #1   :   (2e5, 8e5),
-    1   :   (4e5, float('inf'))
-}
-
 from optparse import OptionParser
 
 usage = """%prog -l <log_archive> -r <rrd_repo> [-r <rrd_repo>]"""
@@ -127,6 +121,7 @@ parser.add_option("-l", "--log", dest="log_archive")
 parser.add_option("-r", "--rrd", action="append", dest="rrd_repos")
 parser.add_option("-d", "--dir", action="append", dest="rrd_dirs")
 parser.add_option("-f", "--file", dest="pebl_file")
+parser.add_option("-t", "--threshold", dest="threshold")
 
 (options, args) = parser.parse_args()
 
@@ -143,6 +138,16 @@ from itertools import izip
 rrd_repos = {}
 for i, j in izip(options.rrd_repos, options.rrd_dirs):
     rrd_repos[i] = j
+
+if options.threshold:
+    threshold = options.threshold
+else:
+    threshold = 1e6
+class_specs = {
+    0   :   (0, threshold),
+    #1   :   (2e5, 8e5),
+    1   :   (threshold, float('inf'))
+}
 
 run(options.log_archive, class_specs, rrd_repos, options.pebl_file)
 
