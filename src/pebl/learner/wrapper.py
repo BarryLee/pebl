@@ -59,6 +59,15 @@ class WrapperClassifierLearner(ClassifierLearner):
         cls_node = self.num_attr
         _stop = self._stop
 
+        if len(attrs_selected_latest):
+            tmp = attrs_selected_latest + [cls_node]
+            tmp.sort()
+            score = cross_validate(self.data.subset(tmp),
+                            classifier_type=self.classifier_type,
+                            **cvargs)
+            attrs_selected_each_round.append([attrs_selected_latest[:],score])
+            self.max_score = score
+
         while len(attrs_left) and not _stop():
             pick = -1
             max_score_this_round = -1
