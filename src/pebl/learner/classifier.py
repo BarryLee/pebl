@@ -1,6 +1,9 @@
 """Base class for learning Bayesian Network Classifier.
 
 """
+import os
+import tempfile
+
 from pebl import network, result
 from pebl.learner.base import *
 
@@ -57,3 +60,12 @@ class ClassifierLearner(Learner):
 
         """
         pass
+
+    def networkImage(self, outfile, dot="dot"):
+        if not hasattr(self, 'network'):
+            raise ClassifierLearnerException, "No network learned"
+        fd,fname = tempfile.mkstemp()
+        self.network.as_dotfile(fname)
+        os.system("%s -Tpng -o%s %s" % (dot, outfile, fname))
+        os.remove(fname)
+
