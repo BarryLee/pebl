@@ -18,7 +18,7 @@ class WrapperClassifierLearner(ClassifierLearner):
     def _run(self):
         getattr(self, self.default_alg)()
 
-    def greedyForward(self, mute=True, stop_no_better=True):
+    def greedyForward(self, mute=True, stop_no_better=True, **cvargs):
         if mute:
             # supress output
             so = file('/dev/null', 'a+')
@@ -42,8 +42,9 @@ class WrapperClassifierLearner(ClassifierLearner):
                 tmp.sort()
                 score = cross_validate(self.data.subset(tmp), 
                                        classifier_type=self.classifier_type,
-                                       score_type='WC',
-                                       runs=10)
+                                       **cvargs)
+                                       #score_type='WC',
+                                       #runs=10)
                 if score > max_score_this_round:
                     max_score_this_round = score
                     pick_this_round = i
