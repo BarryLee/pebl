@@ -10,13 +10,13 @@ from pebl.learner.base import *
 class LocalCPDCache(object):
     
     def __init__(self):
-        self._cpd_cache = {}
+        self._cache = {}
 
     def __call__(self, k, d=None):
-        return self._cpd_cache.setdefault(k, d)
+        return self._cache.setdefault(k, d)
 
     def setdefault(self, k, d=None):
-        return self._cpd_cache.setdefault(k, d)
+        return self._cache.setdefault(k, d)
 
 class ClassifierLearnerException(Exception):
     pass

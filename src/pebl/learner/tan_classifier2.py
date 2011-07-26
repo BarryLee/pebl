@@ -101,11 +101,11 @@ class TANClassifierLearner(NBClassifierLearner):
         if var_type(variables_[nodes[0]]) == 'discrete':
             if [v for v in variables_[[nodes[1:]]] if var_type(v) == 'continuous']:
                 raise TANClassifierLearnerException, "Discrete node can't have continuous parent."
-            return self._cpd_cache.setdefault(idx,
+            return self._cpd_cache(idx,
                 MultinomialCPD(self.data._subset_ni_fast(nodes)))
         # node is continuous
         else:
-            return self._cpd_cache.setdefault(idx,
+            return self._cpd_cache(idx,
                 MultivariateCPD(self.data._subset_ni_fast(nodes)))
 
     def _jointCpd(self, nodes):
