@@ -16,7 +16,7 @@ class LocalCPDCache(object):
         return self._cpd_cache.setdefault(k, d)
 
     def setdefault(self, k, d=None):
-        return self.__call__(k, d)
+        return self._cpd_cache.setdefault(k, d)
 
 class ClassifierLearnerException(Exception):
     pass

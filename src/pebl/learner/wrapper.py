@@ -1,10 +1,26 @@
 import sys
 import os
 
-from pebl.learner.classifier import ClassifierLearner
-from pebl.classifier_tester import cross_validate
+from pebl.learner.classifier import LocalCPDCache as LCC
+from pebl.learner.nb_classifier import NBClassifierLearner
+from pebl.classifier_tester import ClassifierTester, cross_validate
+from pebl.classifier import Classifier
 
-class WrapperClassifierLearner(ClassifierLearner):
+class SharedLocalCPDCache(LCC):
+
+    def __init__(self, cache, subset_idx):
+        self._cache = cache
+        k_mapper = lambda x: tuple([r[0] for r in 
+                                    (type(k) is int 
+                                        and (subset_idx[k],) 
+                                        or (k_mapper(k),) 
+                                     for k in x)])
+        self.kMapper = k_mapper
+    
+    def __call__(self, k, d=None):
+        return self._cache.setdefault(self.kMapper(k), d)
+
+class WrapperClassifierLearner(NBClassifierLearner):
 
     def __init__(self, classifier_type, data_=None, 
                  required_attrs=None, prohibited_attrs=None,
@@ -33,14 +49,14 @@ class WrapperClassifierLearner(ClassifierLearner):
                     break
             if ret: return ret
             else: raise Exception, "No such variable: %s" % a
-            
-    def greedyForward(self, mute=True, stop_no_better=True, **cvargs):
+        
+    def greedyForward(self, score_func, stop_no_better=True, mute=True, **sfargs):
         if mute:
             # supress output
             so = file('/dev/null', 'a+')
             stdout = os.dup(sys.stdout.fileno())
             os.dup2(so.fileno(), sys.stdout.fileno())
-
+        
         attrs_left = range(self.num_attr)
         for a in self.prohibited_attrs:
             attrs_left.remove(self._attrIdx(a))
@@ -59,12 +75,11 @@ class WrapperClassifierLearner(ClassifierLearner):
         cls_node = self.num_attr
         _stop = self._stop
 
+        # if there are preselect attrs, compute a initial score
         if len(attrs_selected_latest):
             tmp = attrs_selected_latest + [cls_node]
             tmp.sort()
-            score = cross_validate(self.data.subset(tmp),
-                            classifier_type=self.classifier_type,
-                            **cvargs)
+            score = score_func(tmp, **sfargs)
             attrs_selected_each_round.append([attrs_selected_latest[:],score])
             self.max_score = score
 
@@ -74,11 +89,7 @@ class WrapperClassifierLearner(ClassifierLearner):
             for i,a in enumerate(attrs_left):
                 tmp = attrs_selected_latest + [a, cls_node]
                 tmp.sort()
-                score = cross_validate(self.data.subset(tmp), 
-                                       classifier_type=self.classifier_type,
-                                       **cvargs)
-                                       #score_type='WC',
-                                       #runs=10)
+                score = score_func(tmp, **sfargs)
                 if score > max_score_this_round:
                     max_score_this_round = score
                     pick_this_round = i
@@ -109,6 +120,36 @@ class WrapperClassifierLearner(ClassifierLearner):
         if mute:
             # restore output
             os.dup2(stdout, sys.stdout.fileno())
+        
+    def _simpleScoreFunc(self, subset_idx, score_type='WC'):
+        """Run test on the trainset.
+
+        """
+        data = self.data.subset(subset_idx)
+        local_cpd_cache_ = SharedLocalCPDCache(self._cpd_cache, subset_idx)
+        learner = self.classifier_type(data, local_cpd_cache=local_cpd_cache_)
+        learner.run()
+
+        c = Classifier(learner)
+        tester = ClassifierTester(c, data)
+        tester.run()
+        return tester.getScore(score_type)[1]
+
+    def greedyForwardSimple(self, stop_no_better=True, mute=True, score_type='WC'):
+        self.greedyForward(score_func=self._simpleScoreFunc, 
+                           stop_no_better=stop_no_better,
+                           mute=mute,
+                           score_type=score_type)
+
+    def _crossValidateScoreFunc(self, subset_idx, **cvargs):
+        data = self.data.subset(subset_idx)
+        return cross_validate(data, classifier_type=self.classifier_type, **cvargs)
+
+    def greedyForwardCV(self, stop_no_better=True, mute=True, **cvargs):
+        self.greedyForward(score_func=self._crossValidateScoreFunc,
+                           stop_no_better=stop_no_better,
+                           mute=mute,
+                           **cvargs)
 
     def _stop(self):
         return self.max_score > self.score_good_enough or \

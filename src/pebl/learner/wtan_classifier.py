@@ -14,7 +14,7 @@ class SharedLocalCPDCache(LCC):
         k_mapper = lambda x: tuple([r[0] for r in 
                                     (type(k) is int 
                                         and (subset_idx[k],) 
-                                        or k_mapper(k) 
+                                        or (k_mapper(k),) 
                                      for k in x)])
         self.kMapper = k_mapper
     
