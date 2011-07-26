@@ -25,7 +25,7 @@ class WrapperClassifierLearner(NBClassifierLearner):
     def __init__(self, classifier_type, data_=None, 
                  required_attrs=None, prohibited_attrs=None,
                  score_good_enough=1, max_num_attr=None, 
-                 default_alg='greedyForward', **kw):
+                 default_alg='greedyForwardSimple', **kw):
         super(WrapperClassifierLearner, self).__init__(data_)
         self.classifier_type = classifier_type
         self.score_good_enough = score_good_enough
