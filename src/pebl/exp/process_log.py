@@ -35,23 +35,25 @@ def unpack(gz):
 
 def read_log(log):
     lf = open(log)
-    ret = []
+    ret = {}
 
     for l in lf:
         l = l.split()
         t, v = int(l[1]), int(l[-1])
-        ret.append([t,v])
+        #ret.append([t,v])
+        if v > ret.setdefault(t, v):
+            ret[t] = v
     lf.close()
 
-    return ret
+    return ret.items()
 
 def stats(pairs):
     ret = {}
     size = len(pairs)
     pairs.sort(key=lambda x:x[1])
 
-    #percentiles = range(50, 100, 5)
-    percentiles = range(95, 100)
+    percentiles = range(50, 100, 5)
+    #percentiles = range(95, 100)
 
     for p in percentiles:
         ret[str(p)+"%"] = pairs[int(size*p/100.0)-1]
