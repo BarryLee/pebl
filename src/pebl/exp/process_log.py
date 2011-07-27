@@ -4,6 +4,10 @@ import math
 import os
 from random import random
 from time import time
+import sys
+import logging
+
+logging.basicConfig(level=logging.DEBUG, stream=sys.stdout)
 
 tmp_ = '/tmp'
 tag = 'plog'
@@ -19,15 +23,45 @@ def g(q_):
     #v_ = f_(x)
     #return v_ + (v_ - 0.5) * min(v_, 1-v_) * v_
 
-from stats import erfcc
+#from stats import erfcc
 
-def cdf(x, mu, sigma):
-    return 0.5*erfcc((mu-x)/(sigma*2**.5))
+#def cdf(x, mu, sigma):
+    #return 0.5*erfcc((mu-x)/(sigma*2**.5))
 
 def unpack(gz):
     cmd = "gzip -d %s" % gz
     print cmd
     os.system(cmd)
+
+def read_log(log):
+    lf = open(log)
+    ret = []
+
+    for l in lf:
+        l = l.split()
+        t, v = int(l[1]), int(l[-1])
+        ret.append([t,v])
+    lf.close()
+
+    return ret
+
+def stats(pairs):
+    ret = {}
+    size = len(pairs)
+    pairs.sort(key=lambda x:x[1])
+
+    #percentiles = range(50, 100, 5)
+    percentiles = range(95, 100)
+
+    for p in percentiles:
+        ret[str(p)+"%"] = pairs[int(size*p/100.0)-1]
+
+    rts = [v for t,v in pairs]
+    ret['mean'] = sum(rts)/float(size)
+    ret['min'] = pairs[0][1]
+    ret['max'] = pairs[-1][1]
+
+    return ret
 
 def parse(log):
     lf = open(log)
@@ -69,7 +103,6 @@ def shrink(pairs, step):
             tmp_max = v
         elif v > tmp_max:
             tmp_max = v
-    return ret
         
 def select(recs):
     thresh = 1e5
@@ -87,32 +120,60 @@ def select(recs):
 
     return s_recs
 
-def process(log_archive, rm_tmp=False):
-    if not os.path.isdir(log_archive):
-        tf = tmp_folder(log_archive)
-        os.mkdir(tf)
-        unpack_cmd = "tar zxvf %s -C %s" % (log_archive, tf)
-        print unpack_cmd
-        os.system(unpack_cmd)
-    else:
-        tf = log_archive
-    selected_records = []
-    
-    for i in os.walk(tf):
+def isarchive(f):
+    return (f.endswith(".tgz") or f.endswith(".tar.gz"))
+
+def process_log_file(log):
+    return read_log(log)
+
+def process_log_folder(log_folder):
+    for i in os.walk(log_folder):
         for j in i[2]:
             fp = i[0] + '/' + j
             if j.endswith(".gz"):
                 unpack(fp)
                 fp = fp[:-3]
-            selected_records += parse(fp)
+            yield process_log_file(fp)
 
-    #selected_records = select(selected_records)
+def postprocess(records, tmp, rm_tmp):
+    logging.debug("%s" % len(records))
+    stats_info = stats(records)
+    logging.debug(stats_info)
 
     if rm_tmp:
-        rm_cmd = "rm -rf %s" % tf
+        rm_cmd = "rm -rf %s" % tmp
         print rm_cmd
         os.system(rm_cmd)
-    return selected_records
+    return records
+
+def preprocess(log_archive):
+    tf = tmp_folder(log_archive)
+    os.mkdir(tf)
+    unpack_cmd = "tar zxvf %s -C %s" % (log_archive, tf)
+    print unpack_cmd
+    os.system(unpack_cmd)
+    return tf
+
+def main(log_archive, rm_tmp=False):
+    tf = None
+    selected_records = []
+    log_folder = None
+
+    if isarchive(log_archive):
+        tf = preprocess(log_archive)
+        log_folder = tf
+    elif os.path.isdir(log_archive):
+        log_folder = log_archive
+    else:
+        selected_records = process_log_file(log_archive)
+
+    if log_folder:
+        for r in process_log_folder(log_folder):
+            selected_records += []
+        if tf is None: rm_tmp = False
+    
+    return postprocess(selected_records, tf, rm_tmp)
+        
 
 if __name__ == "__main__":
     import sys
@@ -127,5 +188,5 @@ if __name__ == "__main__":
         if not os.path.exists(a):
             print "File not found: %s" % a
         else:
-            v.append(process(a))
+            v.append(main(a))
 
