@@ -126,9 +126,11 @@ def isarchive(f):
     return (f.endswith(".tgz") or f.endswith(".tar.gz"))
 
 def process_log_file(log):
+    logging.debug("processing file %s..." % log)
     return read_log(log)
 
 def process_log_folder(log_folder):
+    logging.debug("processing folder %s..." % log_folder)
     for i in os.walk(log_folder):
         for j in i[2]:
             fp = i[0] + '/' + j
@@ -138,7 +140,7 @@ def process_log_folder(log_folder):
             yield process_log_file(fp)
 
 def postprocess(records, tmp, rm_tmp):
-    logging.debug("%s" % len(records))
+    logging.debug("postprocessing %s recodes..." % len(records))
     stats_info = stats(records)
     logging.debug(stats_info)
 
@@ -149,6 +151,7 @@ def postprocess(records, tmp, rm_tmp):
     return records
 
 def preprocess(log_archive):
+    logging.debug("preprocessing...")
     tf = tmp_folder(log_archive)
     os.mkdir(tf)
     unpack_cmd = "tar zxvf %s -C %s" % (log_archive, tf)
