@@ -169,7 +169,7 @@ def main(log_archive, rm_tmp=False):
 
     if log_folder:
         for r in process_log_folder(log_folder):
-            selected_records += []
+            selected_records += r
         if tf is None: rm_tmp = False
     
     return postprocess(selected_records, tf, rm_tmp)
