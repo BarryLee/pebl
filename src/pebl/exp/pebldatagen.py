@@ -4,7 +4,7 @@ import sys
 import logging
 
 from rrdtool_wrapper import *
-from process_log import process as extract_log
+from process_log import process_log, response_time_stats, sample
 
 logging.basicConfig(level=logging.INFO, stream=sys.stdout)
 
@@ -92,21 +92,33 @@ def write_to_file(vars, obs, filename):
 
     f.close()
     
-def run(log_archive, cls_specs, rrd_repos, pebl_file):
+def run(log_archive, threshold, rrd_repos, sample_interval, cf, pebl_file):
     logging.info("extract info from log...")
-    log_extracted = extract_log(log_archive, False)
-    logging.debug(log_extracted)
+
+    recs = process_log(log_archive, False)
+    logging.debug("raw recs:\n%s" % recs)
+
+    sampled_recs = sample(recs, sample_interval, cf)
+    logging.debug("sampled recs:\n%s" % sampled_recs)
 
     logging.info("generate variables...")
     vars, files, = gen_vars(rrd_repos)
-    vars.append("cls,discrete(%d)" % len(cls_specs))
-    logging.debug(vars)
-    logging.debug(files)
+    vars.append("cls,discrete(%d)" % 2)
+
+    if threshold.endswith("%"):
+        rt_stats = response_time_stats(recs)
+        threshold = rt_stats[threshold]
+    else: threshold = float(threshold)
+    logging.info("threshold is %s" % threshold)
+
+    cls_specs = { "0"   :   (0, threshold),
+                  "1"   :   (threshold, float("inf")) }
 
     logging.info("collect data from rrd files...")
-    obs = collect(log_extracted, files)
+    obs = collect(sampled_recs, files)
+
     classify(obs, cls_specs)
-    logging.debug(obs)
+    logging.debug("final output:\n%s" % obs)
 
     write_to_file(vars, obs, pebl_file)
 
@@ -121,12 +133,16 @@ parser.add_option("-l", "--log", dest="log_archive")
 parser.add_option("-r", "--rrd", action="append", dest="rrd_repos")
 parser.add_option("-d", "--dir", action="append", dest="rrd_dirs")
 parser.add_option("-f", "--file", dest="pebl_file")
-parser.add_option("-t", "--threshold", dest="threshold", type="float")
+parser.add_option("-i", "--interval", dest="sample_interval", type="int", default="15")
+parser.add_option("-t", "--threshold", dest="threshold")
+parser.add_option("-a", "--consolidate-function", dest="cf", default="avg")
+
+requested_args = ("log_archive", "rrd_repos", "rrd_dirs", "pebl_file")
 
 (options, args) = parser.parse_args()
 
 for k,v in options.__dict__.items():
-    if v is None:
+    if k in requested_args and v is None:
         print "You haven't supply %s" % k
         sys.exit(1)
 
@@ -142,12 +158,7 @@ for i, j in izip(options.rrd_repos, options.rrd_dirs):
 if options.threshold:
     threshold = options.threshold
 else:
-    threshold = 1e6
-class_specs = {
-    0   :   (0, threshold),
-    #1   :   (2e5, 8e5),
-    1   :   (threshold, float('inf'))
-}
+    threshold = "60%"
 
-run(options.log_archive, class_specs, rrd_repos, options.pebl_file)
+run(options.log_archive, threshold, rrd_repos, options.sample_interval, options.cf, options.pebl_file)
 

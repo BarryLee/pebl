@@ -7,12 +7,10 @@ from time import time
 import sys
 import logging
 
-logging.basicConfig(level=logging.DEBUG, stream=sys.stdout)
-
 tmp_ = '/tmp'
 tag = 'plog'
 tmp_folder = lambda x: '%s/%s%s%s' % (tmp_, x, tag, time())
-step = 15
+sample_interval = 15
 q = 1e-05
 
 def g(q_):
@@ -47,16 +45,59 @@ def read_log(log):
 
     return ret.items()
 
-def stats(pairs):
+def requests_stats(log, sample_interval=60):
+    lf = open(log)
+    
+    fl = lf.readline().split()
+    t, sz, rt = int(fl[1]), int(fl[-2]), int(fl[-1]) 
+    ret = {}
+    ret[t] = {'sz': sz, '#requests': 1, 'rt_max': rt, 'rt_min': rt, 'rt_avg': 0 }
+    base_t = t
+    for l in lf:
+        sl = l.split()
+        t, sz, rt = int(sl[1]), int(sl[-2]), int(sl[-1])
+        
+        #base_t = base
+        d = (t - base_t) / sample_interval
+        if d != 0:
+            sign = d/abs(d)
+            for j in range(1,abs(d)+1):
+                ret.setdefault(base_t + sign*j*sample_interval, {})
+            #this_interval = ret[base_t + d*sample_interval]
+            base_t += d*sample_interval
+        this_interval = ret[base_t]
+
+        this_interval.setdefault('#requests', 0)
+        this_interval['#requests'] += 1
+        
+        this_interval.setdefault('sz', 0)
+        this_interval['sz'] += sz
+
+        if rt > this_interval.setdefault('rt_max', 0):
+            this_interval['rt_max'] = rt
+        
+        if rt < this_interval.setdefault('rt_min', rt):
+            this_interval['rt_min'] = rt
+
+        this_interval.setdefault('rt_avg', 0)
+        this_interval['rt_avg'] += rt
+
+    for k,item in ret.iteritems():
+        if item.get('rt_avg'):
+            item['rt_avg'] /= float(item['#requests'])
+
+    return ret.items()
+
+def response_time_stats(pairs):
     ret = {}
     size = len(pairs)
-    pairs.sort(key=lambda x:x[1])
+    pairs = sorted(pairs, key=lambda x:x[1])
 
     percentiles = range(50, 100, 5)
     #percentiles = range(95, 100)
 
     for p in percentiles:
-        ret[str(p)+"%"] = pairs[int(size*p/100.0)-1]
+        ret[str(p)+"%"] = pairs[int(size*p/100.0)-1][1]
 
     rts = [v for t,v in pairs]
     ret['mean'] = sum(rts)/float(size)
@@ -81,7 +122,7 @@ def parse(log):
     ret = ret.items()
     ret.sort()
     #select(ret)
-    ret = shrink(ret, step)
+    ret = sample(ret, sample_interval)
     return ret
 
 #def select(pairs):
@@ -93,18 +134,26 @@ def parse(log):
     #for t,v in pairs.items():
         #if not random() < f(v):
             #del pairs[t]
-    
-def shrink(pairs, step):
-    base = 0
+cfs = { "max" : max,
+        "min" : min,
+        "avg" : lambda x: float(sum(x))/len(x) }
+
+def sample(pairs, sample_interval, cf=max):
     ret = []
-    base, tmp_max = pairs[0]
+    buffer = []
+    cf = callable(cf) and cf or cfs[cf]
+    pairs = sorted(pairs, key=lambda x:x[0])
+    base = pairs[0][0]
+
     for t, v in pairs:
-        if t - base >= step:
-            ret.append((base, tmp_max))
+        if t - base >= sample_interval:
+            ret.append((base, cf(buffer)))
+            buffer = []
             base = t
-            tmp_max = v
-        elif v > tmp_max:
-            tmp_max = v
+        else:
+            buffer.append(v)
+
+    return ret
         
 def select(recs):
     thresh = 1e5
@@ -125,33 +174,30 @@ def select(recs):
 def isarchive(f):
     return (f.endswith(".tgz") or f.endswith(".tar.gz"))
 
-def process_log_file(log):
-    logging.debug("processing file %s..." % log)
-    return read_log(log)
+def process_log_file(log, proc):
+    logging.info("processing file %s..." % log)
+    return proc(log)
 
-def process_log_folder(log_folder):
-    logging.debug("processing folder %s..." % log_folder)
+def process_log_folder(log_folder, proc):
+    logging.info("processing folder %s..." % log_folder)
     for i in os.walk(log_folder):
         for j in i[2]:
             fp = i[0] + '/' + j
             if j.endswith(".gz"):
                 unpack(fp)
                 fp = fp[:-3]
-            yield process_log_file(fp)
+            yield process_log_file(fp, proc)
 
-def postprocess(records, tmp, rm_tmp):
-    logging.debug("postprocessing %s recodes..." % len(records))
-    stats_info = stats(records)
-    logging.debug(stats_info)
+def postprocess(tmp, rm_tmp):
+    logging.info("postprocessing ...")
 
     if rm_tmp:
         rm_cmd = "rm -rf %s" % tmp
         print rm_cmd
         os.system(rm_cmd)
-    return records
 
 def preprocess(log_archive):
-    logging.debug("preprocessing...")
+    logging.info("preprocessing...")
     tf = tmp_folder(log_archive)
     os.mkdir(tf)
     unpack_cmd = "tar zxvf %s -C %s" % (log_archive, tf)
@@ -159,9 +205,9 @@ def preprocess(log_archive):
     os.system(unpack_cmd)
     return tf
 
-def main(log_archive, rm_tmp=False):
+def main(log_archive, proc_func, rm_tmp):
     tf = None
-    selected_records = []
+    records = []
     log_folder = None
 
     if isarchive(log_archive):
@@ -170,20 +216,27 @@ def main(log_archive, rm_tmp=False):
     elif os.path.isdir(log_archive):
         log_folder = log_archive
     else:
-        selected_records = process_log_file(log_archive)
+        records = process_log_file(log_archive, proc_func)
 
     if log_folder:
-        for r in process_log_folder(log_folder):
-            selected_records += r
+        try:
+            for r in process_log_folder(log_folder, proc_func):
+                records += r
+        except KeyboardInterrupt:
+            logging.info('Interrupted!')
         if tf is None: rm_tmp = False
     
-    return postprocess(selected_records, tf, rm_tmp)
-        
+    postprocess(tf, rm_tmp)
+    return records
+
+def process_log(log_archive, rm_tmp=False):
+    return main(log_archive, proc_func=read_log, rm_tmp=rm_tmp)
+
+def stats_log(log_archive, rm_tmp=False):
+    return main(log_archive, proc_func=requests_stats, rm_tmp=rm_tmp)
 
 if __name__ == "__main__":
     import sys
-
-    v = []
 
     if not len(sys.argv) > 1:
         print "Nothing happened"
@@ -193,5 +246,5 @@ if __name__ == "__main__":
         if not os.path.exists(a):
             print "File not found: %s" % a
         else:
-            v.append(main(a))
+            print stats_log(a)        
 
