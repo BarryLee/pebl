@@ -78,25 +78,31 @@ class MultivariateCPD(object):
     """
     def __init__(self, data_):
         self.data = data_
+
         # the indices and arities of discrete variables in parent nodes
         self.discrete_parents = [i+1 for i,v in enumerate(data_.variables[1:]) 
                                        if var_type(v) == 'discrete']
         arities = [data_.variables[i].arity for i in self.discrete_parents]
+
         # the indices of discrete variables in parent nodes
         self.continuous_parents = [i+1 for i,v in enumerate(data_.variables[1:]) 
                                        if var_type(v) == 'continuous']
-        # we use such a matrix to count the data:
+
+        # Use such a matrix to count the data:
+        #
         #   [[X1, X2, ..., Xn, X1^2, X1*X2, ..., X1*Xn, X2*X1, ..., Xn^Xn ,C1],
         #    [X1, X2, ..., Xn, X1^2, X1*X2, ..., X1*Xn, X2*X1, ..., Xn^Xn ,C2],
         #    ...
         #    [X1, X2, ..., Xn, X1^2, X1*X2, ..., X1*Xn, X2*X1, ..., Xn^Xn ,Cqi]]
-        #   each row represents a value of the discrete parents. 
-        #   each of the first n columns represents the sum of a 
-        #   continuous node's value with respect to a value of 
-        #   discrete parents. the remaining columns are sums of 
-        #   products of every two continuous variables, in a order
-        #   as the covariance matrix being expanded, with respect
-        #   to a value of discrete parents.
+        #
+        #   each row represents a combination of values of the discrete parents. 
+        #   Each of the first n columns represents the sum of a continuous node's 
+        #   value with respect to a combination of values of discrete parents. 
+        #   The remaining columns are sums of products of every two continuous 
+        #   variables, in a order the same as the covariance matrix being expanded, 
+        #   with respect to a combination of values of discrete parents. The last 
+        #   column are counts for each combination of values of discrete parents.
+
         num_cv = len(self.continuous_parents) + 1
         self.num_cv = num_cv
         #nc = (2 + num_cv + 1) * num_cv / 2
@@ -105,15 +111,18 @@ class MultivariateCPD(object):
         self.counts = np.zeros((qi, nc + 1))
                                #(data_.variables.size - len(arities))* 2 + 1), 
         #self.bicounts = np.array([np.zeros((num_cv, num_cv))] * qi)
+
         # matrix for expectations, derived from counts, the last 
         #   column is used as dirty bit
         self.exps = np.zeros((qi, nc + 1))
         self.exps[:,-1] = [1] * qi
         #self.uncond_exps = np.zeros((1, num_cv))
         #self.dirty_pa = [0] * qi
+
         # covariance and coexpectation matrix for each value of discrete parents 
         self.cov = np.array([np.zeros((num_cv, num_cv))] * qi)
         self.coe = np.copy(self.cov)
+
         # parameter matrix, one row for each value of discrete parents,
         #   the last column is used as dirty bit
         self.params = np.zeros((qi, num_cv + 1 + 1))

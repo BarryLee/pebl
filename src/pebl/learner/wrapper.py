@@ -98,8 +98,9 @@ class WrapperClassifierLearner(NBClassifierLearner):
                     pick = i
 
             attr_this_round = attrs_left.pop(pick_this_round)
-            attrs_selected_latest = attrs_selected_latest + [attr_this_round] # this creates a new list
-            attrs_selected_each_round.append([attrs_selected_latest, max_score_this_round])
+            #attrs_selected_latest = attrs_selected_latest + [attr_this_round] # this creates a new list
+            attrs_selected_latest.append(attr_this_round)
+            attrs_selected_each_round.append([attrs_selected_latest[:], max_score_this_round])
             self.num_attr_selected += 1
 
             if pick == -1:
@@ -107,7 +108,8 @@ class WrapperClassifierLearner(NBClassifierLearner):
             else:
                 assert pick_this_round == pick
                 #assert len(self.attrs_selected) == len(attrs_selected_latest) - 1
-                self.attrs_selected = attrs_selected_latest[:]
+                #self.attrs_selected = attrs_selected_latest[:]
+                self.attrs_selected.append(attr_this_round)
         
         for each,score in attrs_selected_each_round:
             each.sort()

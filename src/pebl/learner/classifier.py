@@ -44,19 +44,19 @@ class ClassifierLearner(Learner):
         #self.network = network.Network(data_.variables, self._createFullGraph())
 
     def run(self):
-        self.result = result.LearnerResult(self)
+        #self.result = result.LearnerResult(self)
         #self.evaluator = classifier_evaluator.ClassifierLearner(self.data, self.seed)
 
-        self.result.start_run()
+        #self.result.start_run()
         # do the actual learning in _run()
-        self._run()
+        return self._run()
         
-        self.result.stop_run()
+        #self.result.stop_run()
 
-        return self.result
+        #return self.result
 
     def _run(self):
-        """To be overided.
+        """To be overrided.
 
         """
         pass
@@ -71,13 +71,13 @@ class ClassifierLearner(Learner):
 
     def a2cMutualInfo(self, x):
         """Compute the mutual info between an attribute and the class.
-        To be overided.
+        To be overrided.
 
         """
         pass
 
     def a2cMutualInfoAll(self):
-        """To be overided.
+        """To be overrided.
 
         """
         pass

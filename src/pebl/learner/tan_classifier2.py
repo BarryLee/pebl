@@ -75,7 +75,7 @@ class TANClassifierLearner(NBClassifierLearner):
         #min_span_tree_edges = min_span_tree(self.num_attr, full_graph, 0)
         self.network = self._addClassParent(min_span_tree_edges)
         self.learnParameters()
-        self.result.add_network(self.network, 0)
+        #self.result.add_network(self.network, 0)
 
     def _buildCpd(self):
         """Build cpd from data.

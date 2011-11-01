@@ -14,7 +14,7 @@ class NBClassifierLearner(ClassifierLearner):
         self._buildCpd()
         
         self.network = self._addClassParent()
-        self.result.add_network(self.network, 0)
+        #self.result.add_network(self.network, 0)
 
     def _buildCpd(self):
         """Build cpd from data.
