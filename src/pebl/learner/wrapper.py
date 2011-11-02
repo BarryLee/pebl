@@ -1,12 +1,13 @@
 import sys
 import os
 
+from pebl.learner.base import Learner
 from pebl.learner.classifier import LocalCPDCache as LCC
 from pebl.learner.nb_classifier import NBClassifierLearner
 from pebl.classifier_tester import ClassifierTester, cross_validate
 from pebl.classifier import Classifier
 
-class SharedLocalCPDCache(LCC):
+class SharedLocalCPDCache(object):
 
     def __init__(self, cache, subset_idx):
         self._cache = cache
@@ -18,24 +19,36 @@ class SharedLocalCPDCache(LCC):
         self.kMapper = k_mapper
     
     def __call__(self, k, d=None):
-        return self._cache.setdefault(self.kMapper(k), d)
+        return self._cache(self.kMapper(k), d)
 
-class WrapperClassifierLearner(NBClassifierLearner):
+    def get(self, k):
+        return self._cache.get(k)
+
+    def put(self, k, d):
+        return self._cache.put(k, d)
+
+    def update(self, k, d):
+        return self._cache.update(k, d)
+
+class WrapperClassifierLearner(object):
 
     def __init__(self, classifier_type, data_=None, 
                  required_attrs=None, prohibited_attrs=None,
                  score_good_enough=1, max_num_attr=None, 
                  default_alg='greedyForwardSimple', **kw):
-        super(WrapperClassifierLearner, self).__init__(data_)
+        #super(WrapperClassifierLearner, self).__init__(data_)
+        self.data = data_
+        self.num_attr = len(data_.variables) - 1
         self.classifier_type = classifier_type
         self.score_good_enough = score_good_enough
         self.max_num_attr = max_num_attr or self.num_attr
         self.default_alg = default_alg
         self.required_attrs = required_attrs or []
         self.prohibited_attrs = prohibited_attrs or []
+        self._cpd_cache = getattr(self.classifier_type, 'LocalCPDCache')() 
 
-    def _run(self):
-        getattr(self, self.default_alg)()
+    def run(self):
+        return getattr(self, self.default_alg)()
 
     def _attrIdx(self, a):
         assert type(a) in (int, str)
@@ -51,11 +64,11 @@ class WrapperClassifierLearner(NBClassifierLearner):
             else: raise Exception, "No such variable: %s" % a
         
     def greedyForward(self, score_func, stop_no_better=True, mute=True, **sfargs):
-        if mute:
-            # supress output
-            so = file('/dev/null', 'a+')
-            stdout = os.dup(sys.stdout.fileno())
-            os.dup2(so.fileno(), sys.stdout.fileno())
+        #if mute:
+            ## supress output
+            #so = file('/dev/null', 'a+')
+            #stdout = os.dup(sys.stdout.fileno())
+            #os.dup2(so.fileno(), sys.stdout.fileno())
         
         attrs_left = range(self.num_attr)
         for a in self.prohibited_attrs:
@@ -90,10 +103,10 @@ class WrapperClassifierLearner(NBClassifierLearner):
                 tmp = attrs_selected_latest + [a, cls_node]
                 tmp.sort()
                 score = score_func(tmp, **sfargs)
-                if score > max_score_this_round:
+                if score >= max_score_this_round:
                     max_score_this_round = score
                     pick_this_round = i
-                if score > self.max_score:
+                if score >= self.max_score:
                     self.max_score = score
                     pick = i
 
@@ -119,22 +132,23 @@ class WrapperClassifierLearner(NBClassifierLearner):
         self.attrs_selected.append(cls_node)
         #self.attrs_selected = attrs_selected
 
-        if mute:
-            # restore output
-            os.dup2(stdout, sys.stdout.fileno())
+        #if mute:
+            ## restore output
+            #os.dup2(stdout, sys.stdout.fileno())
         
     def _simpleScoreFunc(self, subset_idx, score_type='WC'):
         """Run test on the trainset.
 
         """
         data = self.data.subset(subset_idx)
+        #import pdb; pdb.set_trace()
         local_cpd_cache_ = SharedLocalCPDCache(self._cpd_cache, subset_idx)
         learner = self.classifier_type(data, local_cpd_cache=local_cpd_cache_)
         learner.run()
 
         c = Classifier(learner)
         tester = ClassifierTester(c, data)
-        tester.run()
+        tester.run(mute=True)
         return tester.getScore(score_type)[1]
 
     def greedyForwardSimple(self, stop_no_better=True, mute=True, score_type='WC'):
@@ -154,6 +168,6 @@ class WrapperClassifierLearner(NBClassifierLearner):
                            **cvargs)
 
     def _stop(self):
-        return self.max_score > self.score_good_enough or \
+        return self.max_score >= self.score_good_enough or \
                 self.num_attr_selected >= self.max_num_attr
 

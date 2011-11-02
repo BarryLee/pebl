@@ -2,12 +2,39 @@
 import numpy as np
 
 from pebl.network import Network, EdgeSet
-from pebl.learner.classifier import ClassifierLearner
+from pebl.learner.classifier import ClassifierLearner, LocalCPDCache as LCC
 from pebl.cpd_ext import *
+
 
 class NBClassifierLearner(ClassifierLearner):
 
+    # inner class LocalCPDCache
+    class LocalCPDCache(LCC):
+        
+        def put(self, k, d):
+            """Create appropriate CPD class instance according to
+            variable type. Param d is instance of dataset
+
+            """
+            variables_ = d.variables
+            
+            if var_type(variables_[0]) == 'discrete':
+                self._cache[k] = MultinomialCPD(d)
+            # node is continuous
+            else:
+                self._cache[k] = MultivariateCPD(d)
+            return self._cache[k]
+
+        def update(self, k, d):
+            c = self.get(k)
+            c.new_obs(d.observations)
+            return c
+
+    # -------------------------------------------------------------------------
+
     def __init__(self, data_=None, prior_=None, local_cpd_cache=None, **kw):
+        if local_cpd_cache is None:
+            local_cpd_cache = self.LocalCPDCache()
         super(NBClassifierLearner, self).__init__(data_, prior_, local_cpd_cache)
 
     def _run(self):
@@ -16,33 +43,37 @@ class NBClassifierLearner(ClassifierLearner):
         self.network = self._addClassParent()
         #self.result.add_network(self.network, 0)
 
-    def _buildCpd(self):
-        """Build cpd from data.
-
-        """
+    def updateCpd(self, data_):
         num_attr = cls_node = self.num_attr
         self.cpd = [None] * (num_attr+1)
         
         for node in xrange(num_attr):
-            self.cpd[node] = self._cpd([node, cls_node])
+            self.cpd[node] = self._cpd([node, cls_node], data_)
 
-        self.cpd[cls_node] = self._cpd([cls_node])
+        self.cpd[cls_node] = self._cpd([cls_node], data_)
 
         for c in self.cpd:
             if isinstance(c, MultivariateCPD):
                 c.updateParameters()
 
-    def _cpd(self, nodes):
+    def _buildCpd(self):
+        """Build cpd from initial data.
+
+        """
+        self.updateCpd(self.data)
+
+    def _cpd(self, nodes, data_=None):
         idx = tuple(nodes)
-        variables_ = self.data.variables
-        
-        if var_type(variables_[nodes[0]]) == 'discrete':
-            return self._cpd_cache(idx,
-                MultinomialCPD(self.data._subset_ni_fast(nodes)))
-        # node is continuous
+        c = self._cpd_cache.get(idx)
+        if c is None:
+            if data_ is None:
+                data_ = self.data
+            return self._cpd_cache.put(idx, data_._subset_ni_fast(nodes))
         else:
-            return self._cpd_cache(idx,
-                MultivariateCPD(self.data._subset_ni_fast(nodes)))
+            if data_ is None:
+                return c
+            else:
+                return self._cpd_cache.update(idx, data_._subset_ni_fast(nodes))
     
     def _addClassParent(self):
         edgeset = EdgeSet(self.data.variables.size)

@@ -13,7 +13,17 @@ class LocalCPDCache(object):
         self._cache = {}
 
     def __call__(self, k, d=None):
-        return self._cache.setdefault(k, d)
+        if d:
+            return self.put(k, d)
+        else:
+            return self.get(k)
+
+    def get(self, k):
+        return self._cache.get(k)
+
+    def put(self, k, d):
+        self._cache[k] = d
+        return d
 
     def setdefault(self, k, d=None):
         return self._cache.setdefault(k, d)

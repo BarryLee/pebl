@@ -9,7 +9,7 @@ Journal of Approximate Reasoning, 43 (2006) 1–25
 """
 import math
 
-from pebl.learner.nb_classifier import NBClassifierLearner
+from pebl.learner.nb_classifier import NBClassifierLearner, LCC
 from pebl.cpd_ext import *
 from pebl.weighted_network import *
 
@@ -52,6 +52,24 @@ class TANClassifierLearnerException(Exception): pass
 
 class TANClassifierLearner(NBClassifierLearner):
 
+    # inner class LocalCPDCache
+    class LocalCPDCache(NBClassifierLearner.LocalCPDCache):
+
+        def put(self, k, d):
+            variables_ = d.variables
+
+            if var_type(variables_[0]) == 'discrete':
+                if [v for v in variables_[1:] if var_type(v) == 'continuous']:
+                    raise TANClassifierLearnerException, "Discrete node can't have continuous parent."
+                self._cache[k] = MultinomialCPD(d)
+            # node is continuous
+            else:
+                self._cache[k] = MultivariateCPD(d)
+
+            return self._cache[k]
+
+    # -------------------------------------------------------------------------
+
     def __init__(self, data_=None, prior_=None, local_cpd_cache=None, **kw):
         super(TANClassifierLearner, self).__init__(data_, prior_, local_cpd_cache)
         # a constant needed by later calculations
@@ -77,38 +95,34 @@ class TANClassifierLearner(NBClassifierLearner):
         self.learnParameters()
         #self.result.add_network(self.network, 0)
 
-    def _buildCpd(self):
-        """Build cpd from data.
-
-        """
+    def updateCpd(self, data_):
         num_attr = cls_node = self.num_attr
 
         self.cpdXC = [None] * num_attr 
         self.cpdXYC = {}
         for node in xrange(num_attr):
-            self.cpdXC[node] = self._cpd([node, cls_node])
+            self.cpdXC[node] = self._cpd([node, cls_node], data_)
 
             # compute a joint counts for every two attributes conditioned on C
             for other_node in xrange(node+1, num_attr):
                 idx = (node, other_node)
-                self.cpdXYC[idx] = self._jointCpd([node, other_node, cls_node])
-        self.cpdC = self._cpd([cls_node])
+                self.cpdXYC[idx] = self._jointCpd([node, other_node, cls_node], data_)
+        self.cpdC = self._cpd([cls_node], data_)
 
-    def _cpd(self, nodes):
+    def _cpd(self, nodes, data_=None):
         idx = tuple(nodes)
-        variables_ = self.data.variables
-        
-        if var_type(variables_[nodes[0]]) == 'discrete':
-            if [v for v in variables_[[nodes[1:]]] if var_type(v) == 'continuous']:
-                raise TANClassifierLearnerException, "Discrete node can't have continuous parent."
-            return self._cpd_cache(idx,
-                MultinomialCPD(self.data._subset_ni_fast(nodes)))
-        # node is continuous
+        c = self._cpd_cache.get(idx)
+        if c is None:
+            if data_ is None:
+                data_ = self.data
+            return self._cpd_cache.put(idx, data_._subset_ni_fast(nodes))
         else:
-            return self._cpd_cache(idx,
-                MultivariateCPD(self.data._subset_ni_fast(nodes)))
+            if data_ is None:
+                return c
+            else:
+                return self._cpd_cache.update(idx, data_._subset_ni_fast(nodes))
 
-    def _jointCpd(self, nodes):
+    def _jointCpd(self, nodes, data_=None):
         variables_ = self.data.variables
         
         if var_type(variables_[nodes[0]]) == 'discrete':
@@ -116,12 +130,12 @@ class TANClassifierLearner(NBClassifierLearner):
             #   and compute the cpd of the continuous node conditioned
             #   on the other nodes
             if var_type(variables_[nodes[1]]) == 'continuous':
-                return self._cpd([nodes[1], nodes[0], nodes[2]])
+                return self._cpd([nodes[1], nodes[0], nodes[2]], data_)
             else:
-                return MultinomialJointCPD(self.data._subset_ni_fast(nodes))
+                return MultinomialJointCPD(data_._subset_ni_fast(nodes))
         # if the 1st node is continuous
         else:
-            return self._cpd(nodes)
+            return self._cpd(nodes, data_)
 
     def _condMutualInfoAll(self):
         num_attr = self.num_attr

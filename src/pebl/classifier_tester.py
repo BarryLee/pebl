@@ -111,7 +111,7 @@ class ClassifierTester(object):
         self.data = test_data
         self.result = TestResult()
 
-    def run(self):
+    def run(self, mute=False):
         obs = self.data.observations
         num_testcase = len(obs)
         result = self.result
@@ -131,14 +131,14 @@ class ClassifierTester(object):
             classifications.append(c)
             if c == real_cls:
                 num_pass += 1
-                print '+',
+                if not mute: print '+',
                 detail[real_cls]['p'] += 1
             else:
                 num_fail += 1
-                print '-',
+                if not mute: print '-',
                 detail[real_cls]['f'][c] += 1
                 detail[real_cls]['f']['s'] += 1
-        print 
+        if not mute: print 
         #print num_pass, num_fail
         #print float(num_pass) / num_testcase, float(num_fail) / num_testcase
         #print classifications
