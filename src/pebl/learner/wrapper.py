@@ -116,6 +116,8 @@ class WrapperClassifierLearner(object):
             attrs_selected_each_round.append([attrs_selected_latest[:], max_score_this_round])
             self.num_attr_selected += 1
 
+            yield attr_this_round, max_score_this_round
+
             if pick == -1:
                 if stop_no_better: break
             else:
@@ -152,7 +154,7 @@ class WrapperClassifierLearner(object):
         return tester.getScore(score_type)[1]
 
     def greedyForwardSimple(self, stop_no_better=True, mute=True, score_type='WC'):
-        self.greedyForward(score_func=self._simpleScoreFunc, 
+        return self.greedyForward(score_func=self._simpleScoreFunc, 
                            stop_no_better=stop_no_better,
                            mute=mute,
                            score_type=score_type)
@@ -162,7 +164,7 @@ class WrapperClassifierLearner(object):
         return cross_validate(data, classifier_type=self.classifier_type, **cvargs)
 
     def greedyForwardCV(self, stop_no_better=True, mute=True, **cvargs):
-        self.greedyForward(score_func=self._crossValidateScoreFunc,
+        return self.greedyForward(score_func=self._crossValidateScoreFunc,
                            stop_no_better=stop_no_better,
                            mute=mute,
                            **cvargs)

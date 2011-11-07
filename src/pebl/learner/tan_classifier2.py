@@ -86,41 +86,36 @@ class TANClassifierLearner(NBClassifierLearner):
 
     def _run(self):
         self._buildCpd()
-        self.cmi = self._condMutualInfoAll()
-        full_graph = self._createFullGraph()
 
-        min_span_tree_edges = self._minSpanTree(full_graph, 0)
-        #min_span_tree_edges = min_span_tree(self.num_attr, full_graph, 0)
-        self.network = self._addClassParent(min_span_tree_edges)
-        self.learnParameters()
-        #self.result.add_network(self.network, 0)
+        self._buildNetwork()
+        #self.cmi = self._condMutualInfoAll()
+        #full_graph = self._createFullGraph()
+
+        #min_span_tree_edges = self._minSpanTree(full_graph, 0)
+        ##min_span_tree_edges = min_span_tree(self.num_attr, full_graph, 0)
+        #self.network = self._addClassParent(min_span_tree_edges)
+        #self.learnParameters()
+        ##self.result.add_network(self.network, 0)
 
     def updateCpd(self, data_):
         num_attr = cls_node = self.num_attr
 
-        self.cpdXC = [None] * num_attr 
-        self.cpdXYC = {}
+        if not hasattr(self, 'cpdXC'):
+            self.cpdXC = [None] * num_attr 
+        if not hasattr(self, 'cpdXYC'):
+            self.cpdXYC = {}
+
         for node in xrange(num_attr):
-            self.cpdXC[node] = self._cpd([node, cls_node], data_)
+            self.cpdXC[node] = self._cpdUpdate([node, cls_node], data_)
 
             # compute a joint counts for every two attributes conditioned on C
             for other_node in xrange(node+1, num_attr):
                 idx = (node, other_node)
-                self.cpdXYC[idx] = self._jointCpd([node, other_node, cls_node], data_)
-        self.cpdC = self._cpd([cls_node], data_)
-
-    def _cpd(self, nodes, data_=None):
-        idx = tuple(nodes)
-        c = self._cpd_cache.get(idx)
-        if c is None:
-            if data_ is None:
-                data_ = self.data
-            return self._cpd_cache.put(idx, data_._subset_ni_fast(nodes))
-        else:
-            if data_ is None:
-                return c
-            else:
-                return self._cpd_cache.update(idx, data_._subset_ni_fast(nodes))
+                if self.cpdXYC.has_key(idx):
+                    self.cpdXYC[idx].new_obs(data_._subset_ni_fast(nodes).observations)
+                else:
+                    self.cpdXYC[idx] = self._jointCpd([node, other_node, cls_node], data_)
+        self.cpdC = self._cpdUpdate([cls_node], data_)
 
     def _jointCpd(self, nodes, data_=None):
         variables_ = self.data.variables
@@ -136,6 +131,16 @@ class TANClassifierLearner(NBClassifierLearner):
         # if the 1st node is continuous
         else:
             return self._cpd(nodes, data_)
+
+    def updateNetwork(self):
+        self.cmi = self._condMutualInfoAll()
+        full_graph = self._createFullGraph()
+
+        min_span_tree_edges = self._minSpanTree(full_graph, 0)
+        #min_span_tree_edges = min_span_tree(self.num_attr, full_graph, 0)
+        self.network = self._addClassParent(min_span_tree_edges)
+        self.learnParameters()
+        #self.result.add_network(self.network, 0)
 
     def _condMutualInfoAll(self):
         num_attr = self.num_attr
@@ -388,7 +393,7 @@ class TANClassifierLearner(NBClassifierLearner):
         variables_ = self.data.variables
         num_vertex = variables_.size
 
-        self.cpd = [None] * num_vertex
+        #self.cpd = [None] * num_vertex
         for vertex in xrange(num_vertex):
             this_cpd = self._cpd([vertex] + parents(vertex))
             if hasattr(this_cpd, "updateParameters"):

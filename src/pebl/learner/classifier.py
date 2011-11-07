@@ -52,6 +52,7 @@ class ClassifierLearner(Learner):
 
         self._cpd_cache = local_cpd_cache or LocalCPDCache()
         #self.network = network.Network(data_.variables, self._createFullGraph())
+        self.cpd = [None] * data_.variables.size
 
     def run(self):
         #self.result = result.LearnerResult(self)

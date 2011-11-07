@@ -25,9 +25,9 @@ class NBClassifierLearner(ClassifierLearner):
                 self._cache[k] = MultivariateCPD(d)
             return self._cache[k]
 
-        def update(self, k, d):
+        def update(self, k, obs):
             c = self.get(k)
-            c.new_obs(d.observations)
+            c.new_obs(obs)
             return c
 
     # -------------------------------------------------------------------------
@@ -40,27 +40,49 @@ class NBClassifierLearner(ClassifierLearner):
     def _run(self):
         self._buildCpd()
         
-        self.network = self._addClassParent()
+        self._buildNetwork()
+        #self.network = self._addClassParent()
         #self.result.add_network(self.network, 0)
-
-    def updateCpd(self, data_):
-        num_attr = cls_node = self.num_attr
-        self.cpd = [None] * (num_attr+1)
-        
-        for node in xrange(num_attr):
-            self.cpd[node] = self._cpd([node, cls_node], data_)
-
-        self.cpd[cls_node] = self._cpd([cls_node], data_)
-
-        for c in self.cpd:
-            if isinstance(c, MultivariateCPD):
-                c.updateParameters()
 
     def _buildCpd(self):
         """Build cpd from initial data.
 
         """
-        self.updateCpd(self.data)
+        if not hasattr(self, 'cpd_built'):
+            self.updateCpd(self.data)
+            self.cpd_built = True
+
+    def _buildNetwork(self):
+        if not hasattr(self, 'network_built'):
+            self.updateNetwork()
+            self.network_built = True
+
+    def updateCpd(self, data_):
+        num_attr = cls_node = self.num_attr
+        #if not hasattr(self, 'cpd'):
+            #self.cpd = [None] * (num_attr+1)
+        
+        for node in xrange(num_attr):
+            self.cpd[node] = self._cpdUpdate([node, cls_node], data_)
+
+        self.cpd[cls_node] = self._cpdUpdate([cls_node], data_)
+
+        for c in self.cpd:
+            if isinstance(c, MultivariateCPD):
+                c.updateParameters()
+
+    def updateNetwork(self):
+        self.network = self._addClassParent()
+
+    def _cpdUpdate(self, nodes, data_):
+        idx = tuple(nodes)
+        c = self._cpd_cache.get(idx)
+
+        if c is None:
+            return self._cpd_cache.put(idx, data_._subset_ni_fast(nodes))
+        else:
+            c.new_obs(data_._subset_ni_fast(nodes).observations)
+            return c
 
     def _cpd(self, nodes, data_=None):
         idx = tuple(nodes)
@@ -70,10 +92,11 @@ class NBClassifierLearner(ClassifierLearner):
                 data_ = self.data
             return self._cpd_cache.put(idx, data_._subset_ni_fast(nodes))
         else:
-            if data_ is None:
-                return c
-            else:
-                return self._cpd_cache.update(idx, data_._subset_ni_fast(nodes))
+            return c
+            #if data_ is None:
+                #return c
+            #else:
+                #return self._cpd_cache.update(idx, data_._subset_ni_fast(nodes))
     
     def _addClassParent(self):
         edgeset = EdgeSet(self.data.variables.size)
