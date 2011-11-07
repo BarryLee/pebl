@@ -85,9 +85,9 @@ class TANClassifierLearner(NBClassifierLearner):
                                                  y in self.discrete_attrs)
 
     def _run(self):
-        self._buildCpd()
+        self.buildCpd()
 
-        self._buildNetwork()
+        self.buildNetwork()
         #self.cmi = self._condMutualInfoAll()
         #full_graph = self._createFullGraph()
 
@@ -97,7 +97,7 @@ class TANClassifierLearner(NBClassifierLearner):
         #self.learnParameters()
         ##self.result.add_network(self.network, 0)
 
-    def updateCpd(self, data_):
+    def _processCpd(self, func1, func2, func3, *args):
         num_attr = cls_node = self.num_attr
 
         if not hasattr(self, 'cpdXC'):
@@ -106,16 +106,43 @@ class TANClassifierLearner(NBClassifierLearner):
             self.cpdXYC = {}
 
         for node in xrange(num_attr):
-            self.cpdXC[node] = self._cpdUpdate([node, cls_node], data_)
+            func1([node, cls_node], *args)
+            #self.cpdXC[node] = self._cpdUpdate([node, cls_node], data_)
 
             # compute a joint counts for every two attributes conditioned on C
             for other_node in xrange(node+1, num_attr):
-                idx = (node, other_node)
-                if self.cpdXYC.has_key(idx):
-                    self.cpdXYC[idx].new_obs(data_._subset_ni_fast(nodes).observations)
-                else:
-                    self.cpdXYC[idx] = self._jointCpd([node, other_node, cls_node], data_)
-        self.cpdC = self._cpdUpdate([cls_node], data_)
+                func2([node, other_node, cls_node], *args)
+                #idx = (node, other_node)
+                #if self.cpdXYC.has_key(idx):
+                    #self.cpdXYC[idx].new_obs(data_._subset_ni_fast(nodes).observations)
+                #else:
+                    #self.cpdXYC[idx] = self._jointCpd([node, other_node, cls_node], data_)
+        func3([cls_node], *args)
+        #self.cpdC = self._cpdUpdate([cls_node], data_)
+
+    def buildCpd(self):
+        self._processCpd(self._cpdXCBuild, self._cpdXYCBuild, self._cpdCBuild, self.data)
+
+    def _cpdXCBuild(self, nodes, data_):
+        self.cpdXC[nodes[0]] = self._cpd(nodes, data_)
+
+    def _cpdXYCBuild(self, nodes, data_):
+        self.cpdXYC[tuple(nodes[:-1])] = self._jointCpd(nodes, data_)
+
+    def _cpdCBuild(self, nodes, data_):
+        self.cpdC = self._cpd(nodes, data_)
+
+    def updateCpd(self, observations):
+        self._processCpd(self._cpdXCUpdate, self._cpdXYCUpdate, self._cpdCUpdate, observations)
+
+    def _cpdXCUpdate(self, nodes, observations):
+        super(TANClassifierLearner, self)._cpdUpdate(nodes, observations)
+
+    def _cpdXYCUpdate(self, nodes, observations):
+        self.cpdXYC[tuple(nodes[:-1])].new_obs(observations[:, nodes])
+
+    def _cpdCUpdate(self, nodes, observations):
+        self.cpdC.new_obs(observations[:, nodes])
 
     def _jointCpd(self, nodes, data_=None):
         variables_ = self.data.variables

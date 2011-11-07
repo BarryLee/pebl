@@ -38,53 +38,63 @@ class NBClassifierLearner(ClassifierLearner):
         super(NBClassifierLearner, self).__init__(data_, prior_, local_cpd_cache)
 
     def _run(self):
-        self._buildCpd()
+        self.buildCpd()
         
-        self._buildNetwork()
+        self.buildNetwork()
         #self.network = self._addClassParent()
         #self.result.add_network(self.network, 0)
 
-    def _buildCpd(self):
+    def buildCpd(self):
         """Build cpd from initial data.
 
         """
-        if not hasattr(self, 'cpd_built'):
-            self.updateCpd(self.data)
-            self.cpd_built = True
+        #def f(nodes, data_):
+            #self.cpd[nodes[0]] = self._cpd(nodes, data_)
+        self._processCpd(self._cpdBuild, self.data)
 
-    def _buildNetwork(self):
+    def _cpdBuild(self, nodes, data_):
+        self.cpd[nodes[0]] = self._cpd(nodes, data_)
+
+    def buildNetwork(self):
         if not hasattr(self, 'network_built'):
             self.updateNetwork()
             self.network_built = True
 
-    def updateCpd(self, data_):
+    def _processCpd(self, func, *args):
         num_attr = cls_node = self.num_attr
         #if not hasattr(self, 'cpd'):
             #self.cpd = [None] * (num_attr+1)
         
         for node in xrange(num_attr):
-            self.cpd[node] = self._cpdUpdate([node, cls_node], data_)
+            func([node, cls_node], *args)
 
-        self.cpd[cls_node] = self._cpdUpdate([cls_node], data_)
+        func([cls_node], *args)
 
         for c in self.cpd:
             if isinstance(c, MultivariateCPD):
                 c.updateParameters()
 
+    def updateCpd(self, observations):
+        self._processCpd(self._cpdUpdate, observations)
+
     def updateNetwork(self):
         self.network = self._addClassParent()
 
-    def _cpdUpdate(self, nodes, data_):
+    def _cpdUpdate(self, nodes, observations):
+        """update for new observations.
+        """
         idx = tuple(nodes)
         c = self._cpd_cache.get(idx)
 
         if c is None:
-            return self._cpd_cache.put(idx, data_._subset_ni_fast(nodes))
+            raise Exception, 'no cpd for %s' % idx
         else:
-            c.new_obs(data_._subset_ni_fast(nodes).observations)
+            c.new_obs(observations[:, nodes])
             return c
 
     def _cpd(self, nodes, data_=None):
+        """getter and setter.
+        """
         idx = tuple(nodes)
         c = self._cpd_cache.get(idx)
         if c is None:
