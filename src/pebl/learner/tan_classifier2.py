@@ -94,7 +94,7 @@ class TANClassifierLearner(NBClassifierLearner):
         #min_span_tree_edges = self._minSpanTree(full_graph, 0)
         ##min_span_tree_edges = min_span_tree(self.num_attr, full_graph, 0)
         #self.network = self._addClassParent(min_span_tree_edges)
-        #self.learnParameters()
+        self.learnParameters()
         ##self.result.add_network(self.network, 0)
 
     def _processCpd(self, func1, func2, func3, *args):
@@ -166,7 +166,7 @@ class TANClassifierLearner(NBClassifierLearner):
         min_span_tree_edges = self._minSpanTree(full_graph, 0)
         #min_span_tree_edges = min_span_tree(self.num_attr, full_graph, 0)
         self.network = self._addClassParent(min_span_tree_edges)
-        self.learnParameters()
+        #self.learnParameters()
         #self.result.add_network(self.network, 0)
 
     def _condMutualInfoAll(self):

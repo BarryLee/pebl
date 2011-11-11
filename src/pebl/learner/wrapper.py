@@ -1,6 +1,8 @@
 import sys
 import os
 
+import numpy as np
+
 from pebl.learner.base import Learner
 from pebl.learner.classifier import LocalCPDCache as LCC
 from pebl.learner.nb_classifier import NBClassifierLearner
@@ -22,17 +24,23 @@ class SharedLocalCPDCache(object):
         return self._cache(self.kMapper(k), d)
 
     def get(self, k):
-        return self._cache.get(k)
+        return self._cache.get(self.kMapper(k))
 
     def put(self, k, d):
-        return self._cache.put(k, d)
+        return self._cache.put(self.kMapper(k), d)
 
     def update(self, k, d):
-        return self._cache.update(k, d)
+        return self._cache.update(self.kMapper(k), d)
+
+    def count(self):
+        self._cache.hits += 1
+
+    def miss(self):
+        self._cache.misses += 1
 
 class WrapperClassifierLearner(object):
 
-    def __init__(self, classifier_type, data_=None, 
+    def __init__(self, classifier_type, data_, 
                  required_attrs=None, prohibited_attrs=None,
                  score_good_enough=1, max_num_attr=None, 
                  default_alg='greedyForwardSimple', **kw):
@@ -172,4 +180,15 @@ class WrapperClassifierLearner(object):
     def _stop(self):
         return self.max_score >= self.score_good_enough or \
                 self.num_attr_selected >= self.max_num_attr
+
+    def updateData(self, obs):
+        if len(self._cpd_cache._cache):
+            self.updateCpd(obs)
+        else:
+            self.data.observations = np.append(self.data.observations, obs)
+
+    def updateCpd(self, obs):
+        cache = self._cpd_cache._cache
+        for k, v in cache.iteritems():
+            v.new_obs(obs[:, k])
 

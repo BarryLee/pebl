@@ -43,14 +43,15 @@ class NBClassifierLearner(ClassifierLearner):
         self.buildNetwork()
         #self.network = self._addClassParent()
         #self.result.add_network(self.network, 0)
+        self.learnParameters()
 
     def buildCpd(self):
         """Build cpd from initial data.
 
         """
-        #def f(nodes, data_):
-            #self.cpd[nodes[0]] = self._cpd(nodes, data_)
-        self._processCpd(self._cpdBuild, self.data)
+        if not hasattr(self, 'cpd_built'):
+            self._processCpd(self._cpdBuild, self.data)
+            self.cpd_built = True
 
     def _cpdBuild(self, nodes, data_):
         self.cpd[nodes[0]] = self._cpd(nodes, data_)
@@ -70,6 +71,7 @@ class NBClassifierLearner(ClassifierLearner):
 
         func([cls_node], *args)
 
+    def learnParameters(self):
         for c in self.cpd:
             if isinstance(c, MultivariateCPD):
                 c.updateParameters()
@@ -98,10 +100,12 @@ class NBClassifierLearner(ClassifierLearner):
         idx = tuple(nodes)
         c = self._cpd_cache.get(idx)
         if c is None:
+            #self._cpd_cache.miss()
             if data_ is None:
                 data_ = self.data
             return self._cpd_cache.put(idx, data_._subset_ni_fast(nodes))
         else:
+            #self._cpd_cache.count()
             return c
             #if data_ is None:
                 #return c

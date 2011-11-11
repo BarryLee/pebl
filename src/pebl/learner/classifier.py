@@ -11,6 +11,8 @@ class LocalCPDCache(object):
     
     def __init__(self):
         self._cache = {}
+        self.hits = 0
+        self.misses = 0
 
     def __call__(self, k, d=None):
         if d:
