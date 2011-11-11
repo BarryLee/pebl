@@ -185,7 +185,7 @@ class WrapperClassifierLearner(object):
         if len(self._cpd_cache._cache):
             self.updateCpd(obs)
         else:
-            self.data.observations = np.append(self.data.observations, obs)
+            self.data.observations = np.append(self.data.observations, obs, axis=0)
 
     def updateCpd(self, obs):
         cache = self._cpd_cache._cache
