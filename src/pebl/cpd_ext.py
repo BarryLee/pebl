@@ -1,4 +1,4 @@
-
+import pdb
 import math
 from itertools import izip
 
@@ -201,12 +201,16 @@ class MultivariateCPD(object):
                 for j in xrange(1, k+1):
                     a[j] += np.concatenate(([self.exps[i, j]], this_coe[j, 1:]))
                     b[j] = this_coe[0, j]
-                beta = np.linalg.solve(a, b)
+                try:
+                    beta = np.linalg.solve(a, b)
+                except np.linalg.LinAlgError:
+                    pdb.set_trace()
+                    raise
                 var = this_cov[0, 0]
                 for j in xrange(1, k+1):
                     for k in xrange(1, k+1):
                         var -= beta[j] * beta[k] * this_cov[j, k]
-                if var**.5 != var**.5: import pdb; pdb.set_trace()
+                if var**.5 != var**.5: pdb.set_trace()
                 self.params[i, :-1] = np.concatenate((beta, [var**.5]))
                 # reset dirty bit
                 self.params[i, -1] = 0

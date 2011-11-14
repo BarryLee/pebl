@@ -58,6 +58,9 @@ class WrapperClassifierLearner(object):
     def run(self):
         return getattr(self, self.default_alg)()
 
+    def set_prohibited_attrs(self, lst):
+        self.prohibited_attrs = lst
+
     def _attrIdx(self, a):
         assert type(a) in (int, str)
         if type(a) is int:
@@ -182,10 +185,10 @@ class WrapperClassifierLearner(object):
                 self.num_attr_selected >= self.max_num_attr
 
     def updateData(self, obs):
-        if len(self._cpd_cache._cache):
-            self.updateCpd(obs)
-        else:
-            self.data.observations = np.append(self.data.observations, obs, axis=0)
+        #if len(self._cpd_cache._cache):
+        #    self.updateCpd(obs)
+        #else:
+        self.data.observations = np.append(self.data.observations, obs, axis=0)
 
     def updateCpd(self, obs):
         cache = self._cpd_cache._cache

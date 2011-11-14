@@ -124,6 +124,7 @@ class ClassifierTester(object):
             for j in range(self.data.variables[-1].arity):
                 if i==j: continue
                 detail[i]['f'][j] = 0
+            detail[i]['f'][-1] = 0
         num_pass = num_fail = 0
         for ob in obs:
             a_case, real_cls = ob[:-1], ob[-1]
