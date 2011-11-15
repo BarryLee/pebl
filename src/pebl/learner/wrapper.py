@@ -184,7 +184,7 @@ class WrapperClassifierLearner(object):
         return self.max_score >= self.score_good_enough or \
                 self.num_attr_selected >= self.max_num_attr
 
-    def updateData(self, obs):
+    def addObs(self, obs):
         #if len(self._cpd_cache._cache):
         #    self.updateCpd(obs)
         #else:
