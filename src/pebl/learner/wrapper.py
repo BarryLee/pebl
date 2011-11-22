@@ -172,7 +172,7 @@ class WrapperClassifierLearner(object):
         c = Classifier(learner)
         tester = ClassifierTester(c, data)
         result = tester.run(mute=mute)
-        if not mute: result.report(verbose=verbose)
+        if not mute: result.report(verbose=verbose, score_type=score_type)
         return tester.getScore(score_type)[1]
 
     def greedyForwardSimple(self, stop_no_better=True, score_type='WC', mute=True, verbose=False):
