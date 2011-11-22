@@ -55,8 +55,8 @@ class WrapperClassifierLearner(object):
         self.prohibited_attrs = prohibited_attrs or []
         self._cpd_cache = getattr(self.classifier_type, 'LocalCPDCache')() 
 
-    def run(self):
-        return getattr(self, self.default_alg)()
+    def run(self, **kwargs):
+        return getattr(self, self.default_alg)(**kwargs)
 
     def set_prohibited_attrs(self, lst):
         self.prohibited_attrs = lst
@@ -74,7 +74,7 @@ class WrapperClassifierLearner(object):
             if ret: return ret
             else: raise Exception, "No such variable: %s" % a
         
-    def greedyForward(self, score_func, stop_no_better=True, mute=True, **sfargs):
+    def greedyForward(self, score_func, stop_no_better=True, **sfargs):
         #if mute:
             ## supress output
             #so = file('/dev/null', 'a+')
@@ -149,7 +149,17 @@ class WrapperClassifierLearner(object):
             ## restore output
             #os.dup2(stdout, sys.stdout.fileno())
         
-    def _simpleScoreFunc(self, subset_idx, score_type='WC'):
+    def _getSubLearner(self, subset_idx):
+        data = self.data.subset(subset_idx)
+        local_cpd_cache_ = SharedLocalCPDCache(self._cpd_cache, subset_idx)
+        learner = self.classifier_type(data, local_cpd_cache=local_cpd_cache_)
+        learner.run()
+        return learner
+
+    def getSelectedLearner(self):
+        return self._getSubLearner(self.attrs_selected)
+
+    def _simpleScoreFunc(self, subset_idx, score_type='WC', mute=True, verbose=False):
         """Run test on the trainset.
 
         """
@@ -161,13 +171,15 @@ class WrapperClassifierLearner(object):
 
         c = Classifier(learner)
         tester = ClassifierTester(c, data)
-        tester.run(mute=True)
+        result = tester.run(mute=mute)
+        if not mute: result.report(verbose=verbose)
         return tester.getScore(score_type)[1]
 
-    def greedyForwardSimple(self, stop_no_better=True, mute=True, score_type='WC'):
+    def greedyForwardSimple(self, stop_no_better=True, score_type='WC', mute=True, verbose=False):
         return self.greedyForward(score_func=self._simpleScoreFunc, 
                            stop_no_better=stop_no_better,
                            mute=mute,
+                           verbose=verbose,
                            score_type=score_type)
 
     def _crossValidateScoreFunc(self, subset_idx, **cvargs):

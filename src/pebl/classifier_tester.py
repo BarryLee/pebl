@@ -47,6 +47,7 @@ class TestResult(object):
 
     def __init__(self):
         self.runs = 0
+        self.detail = {}
 
     def _taScore(self):
         return float(self.num_pass) / self.num_testcase
@@ -117,7 +118,7 @@ class ClassifierTester(object):
         result = self.result
         fails = []
         classifications = []
-        detail = {}
+        detail = result.detail
         for i in range(self.data.variables[-1].arity):
             detail[i] = {'p': 0,
                             'f': {'s': 0}}
@@ -132,14 +133,14 @@ class ClassifierTester(object):
             classifications.append(c)
             if c == real_cls:
                 num_pass += 1
-                if not mute: print '+',
+                #if not mute: print '+',
                 detail[real_cls]['p'] += 1
             else:
                 num_fail += 1
-                if not mute: print '-',
+                #if not mute: print '-',
                 detail[real_cls]['f'][c] += 1
                 detail[real_cls]['f']['s'] += 1
-        if not mute: print 
+        #if not mute: print 
         #print num_pass, num_fail
         #print float(num_pass) / num_testcase, float(num_fail) / num_testcase
         #print classifications
@@ -148,6 +149,7 @@ class ClassifierTester(object):
         result.num_testcase = num_testcase
         result.detail = detail
         result.runs += 1
+        return result
 
     def report(self, verbose=False, score_type='TA'):
         self.result.report(verbose=verbose, score_type=score_type)
