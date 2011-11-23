@@ -137,12 +137,12 @@ class WrapperClassifierLearner(object):
                 #self.attrs_selected = attrs_selected_latest[:]
                 self.attrs_selected.append(attr_this_round)
         
-        for each,score in attrs_selected_each_round:
-            each.sort()
-            each.append(cls_node)
+        #for each,score in attrs_selected_each_round:
+            #each.sort()
+            #each.append(cls_node)
 
-        self.attrs_selected.sort()
-        self.attrs_selected.append(cls_node)
+        #self.attrs_selected.sort()
+        #self.attrs_selected.append(cls_node)
         #self.attrs_selected = attrs_selected
 
         #if mute:
@@ -157,6 +157,8 @@ class WrapperClassifierLearner(object):
         return learner
 
     def getSelectedLearner(self):
+        self.attrs_selected.sort()
+        self.attrs_selected.append(cls_node)
         return self._getSubLearner(self.attrs_selected)
 
     def _simpleScoreFunc(self, subset_idx, score_type='WC', mute=True, verbose=False):
