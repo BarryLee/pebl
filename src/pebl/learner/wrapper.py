@@ -157,6 +157,7 @@ class WrapperClassifierLearner(object):
         return learner
 
     def getSelectedLearner(self):
+        cls_node = self.num_attr
         self.attrs_selected.sort()
         self.attrs_selected.append(cls_node)
         return self._getSubLearner(self.attrs_selected)
