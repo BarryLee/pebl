@@ -141,7 +141,7 @@ class WrapperClassifierLearner(object):
             #each.sort()
             #each.append(cls_node)
 
-        #self.attrs_selected.sort()
+        self.attrs_selected.sort()
         #self.attrs_selected.append(cls_node)
         #self.attrs_selected = attrs_selected
 
@@ -158,9 +158,10 @@ class WrapperClassifierLearner(object):
 
     def getSelectedLearner(self):
         cls_node = self.num_attr
-        attrs_selected = sorted(self.attrs_selected)
-        attrs_selected.append(cls_node)
-        return self._getSubLearner(attrs_selected)
+        #self.attrs_selected.sort()
+        attrs = attrs_selected[:]
+        attrs.append(cls_node)
+        return self._getSubLearner(attrs)
 
     def _simpleScoreFunc(self, subset_idx, score_type='WC', mute=True, verbose=False):
         """Run test on the trainset.
