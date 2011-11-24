@@ -141,7 +141,7 @@ class WrapperClassifierLearner(object):
             #each.sort()
             #each.append(cls_node)
 
-        self.attrs_selected.sort()
+        #self.attrs_selected.sort()
         #self.attrs_selected.append(cls_node)
         #self.attrs_selected = attrs_selected
 
@@ -158,8 +158,8 @@ class WrapperClassifierLearner(object):
 
     def getSelectedLearner(self):
         cls_node = self.num_attr
-        #self.attrs_selected.sort()
-        attrs = attrs_selected[:]
+        self.attrs_selected.sort()
+        attrs = self.attrs_selected[:]
         attrs.append(cls_node)
         return self._getSubLearner(attrs)
 
