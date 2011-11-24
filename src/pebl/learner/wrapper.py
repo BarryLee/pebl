@@ -127,8 +127,6 @@ class WrapperClassifierLearner(object):
             attrs_selected_each_round.append([attrs_selected_latest[:], max_score_this_round])
             self.num_attr_selected += 1
 
-            yield attr_this_round, max_score_this_round
-
             if pick == -1:
                 if stop_no_better: break
             else:
@@ -137,6 +135,8 @@ class WrapperClassifierLearner(object):
                 #self.attrs_selected = attrs_selected_latest[:]
                 self.attrs_selected.append(attr_this_round)
         
+            yield attr_this_round, max_score_this_round
+
         #for each,score in attrs_selected_each_round:
             #each.sort()
             #each.append(cls_node)
