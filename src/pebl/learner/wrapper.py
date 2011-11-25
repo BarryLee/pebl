@@ -139,8 +139,6 @@ class WrapperClassifierLearner(object):
                 ##assert len(self.attrs_selected) == len(attrs_selected_latest) - 1
                 ##self.attrs_selected = attrs_selected_latest[:]
                 #self.attrs_selected.append(attr_this_round)
-        
-            yield attr_this_round, max_score_this_round
 
         #for each,score in attrs_selected_each_round:
             #each.sort()
