@@ -176,7 +176,8 @@ def cross_validate(data, classifier_type="tan", test_ratio=0.05, runs=1, verbose
     def classifier_picker(classifier_type):
         classifier_types = {
             'nb'    :   'nb_classifier.NBClassifierLearner',
-            'tan'   :   'tan_classifier2.TANClassifierLearner'
+            'tan'   :   'tan_classifier2.TANClassifierLearner',
+            'tanc'   :   'tan_classifier_cont.TANClassifierLearner'
         }
         ct = classifier_types.get(classifier_type.lower()).split('.')
         upper_mod = __import__('pebl.learner', fromlist=[ ct[0] ])
