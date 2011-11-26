@@ -143,10 +143,13 @@ class StatsConcrete(object):
         self._change_counts(obs, change)
         self._updateStatistics()
 
-    def condCovariance(self, x, y, p):
-        if type(p) is not int:
-            p = np.dot(p, self.offsets)
-        v = self.cov[p, x, y]
+    def condCovariance(self, x, y, pv):
+        """The parameters are, index of attr x, index of attr y,
+        and value of parents
+        """
+        if type(pv) is not int:
+            pv = np.dot(pv, self.offsets)
+        v = self.cov[pv, x, y]
         #if v == 0:
             ##import pdb; pdb.set_trace()
             #e = self.coe[p, x, y]
@@ -157,9 +160,18 @@ class StatsConcrete(object):
         return v
         #return self.cov[p, x, y]
 
-    def condVariance(self, x, p):
+    def condVariance(self, x, pv):
         #return self.cov[p, x, x]
-        return self.condCovariance(x, x, p)
+        return self.condCovariance(x, x, pv)
+
+    def condCoexp(self, x, y, pv):
+        if type(pv) is not int:
+            pv = np.dot(pv, self.offsets)
+        e = self.coe[pv, x, y]**.5
+        return e
+
+    def condExp(self, x, pv):
+        return self.condCoexp(x, x, pv)
 
 # end class
 
