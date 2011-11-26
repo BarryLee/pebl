@@ -5,7 +5,7 @@
 import pdb
 import math
 
-from pebl.learner.nb_classifier import NBClassifierLearner, LCC
+from pebl.learner.nb_classifier_cont import NBClassifierLearner, LCC
 from pebl.cpd_ext import MultinomialCPD, var_type
 from pebl.cpd_cont import *
 from pebl.weighted_network import *
@@ -33,11 +33,13 @@ class TANClassifierLearner(NBClassifierLearner):
 
     # -------------------------------------------------------------------------
 
-    def __init__(self, data_=None, prior_=None, local_cpd_cache=None, **kw):
-        super(TANClassifierLearner, self).__init__(data_, prior_, local_cpd_cache or self.LocalCPDCache())
+    def __init__(self, data_=None, prior_=None, local_cpd_cache=None, stats=None, cmi=None, **kw):
+        super(TANClassifierLearner, self).__init__(data_, prior_, local_cpd_cache or self.LocalCPDCache(), stats)
 
         # a constant needed by later calculations
         self.inv_log2 = 1.0 / math.log(2)
+
+        self.cmi = cmi
 
     def _run(self):
         self.buildCpd()
@@ -47,71 +49,26 @@ class TANClassifierLearner(NBClassifierLearner):
         self.learnParameters()
 
     def buildCpd(self):
-        self.stats = StatsConcrete(self.data)
+        #self.stats = StatsConcrete(self.data)
         #self.cpd = MultivariateCPD(self.data)
+        if self.stats is None:
+            self.stats = StatsConcrete(self.data)
+            self.cmi = None
+        if self.cmi is None:
+            self.cmi = CMICont(self.stats)
         self.cpdC = self._cpd([self.num_attr], self.data._subset_ni_fast([self.num_attr]))
 
     def updateCpd(self, observations):
-        self.stats.new_obs(observations)
-        self.cpdC.new_obs(observations[:,-1])
+        self.stats.newObs(observations)
+        self.cpdC.newObs(observations[:,-1])
 
     def updateNetwork(self):
-        self.cmi = self._condMutualInfoAll()
+        #self.cmi = self._condMutualInfoAll()
         full_graph = self._createFullGraph()
 
         min_span_tree_edges = self._minSpanTree(full_graph, 0)
         #min_span_tree_edges = min_span_tree(self.num_attr, full_graph, 0)
         self.network = self._addClassParent(min_span_tree_edges)
-
-    def _condMutualInfoAll(self):
-        num_attr = self.num_attr
-        cmi = np.zeros((num_attr, num_attr))
-
-        for x in xrange(num_attr):
-            for y in xrange(x+1, num_attr):
-                cmi[x][y] = cmi[y][x] = self._condMutualInfo(x, y)
-
-        return cmi
-
-    def _condMutualInfo(self, x, y):
-        """Calculate conditional mutual information of variables x, y, c
-                       _____
-                       \                    P(x,y|c)
-            I(x,y|c) = /____ P(x,y,c) log -------------
-                       x,y,c               P(x|c)P(y|c)
-
-        x,y denotes the xth and yth variables, c denotes the class variable.
-
-        """
-        if x == y: return 0
-        if x > y: x, y = y, x
-
-        return self._condMutualInfoCC(x, y)
-
-    def _condMutualInfoCC(self, x, y):
-        """Calculate conditional mutual information of two continuous variables.
-
-        For tow continuous variables, We can use equation:
-                               __
-                              \                    Cov(X, Y|c)^2
-            I(X,Y|C) = -1/2 * /__ P(c) * log( 1 - --------------- )
-                               c                    VX|c * VY|c
-
-        where SX and SY denote the variance of X and Y respectively.
-        
-        """
-        num_cls = self.num_cls
-
-        cmi_xy = 0
-        for vc in xrange(num_cls):
-            Pc = self.probC(vc)
-            rho2 = self.stats.condCovariance(x, y, vc) ** 2 / \
-                    (self.stats.condVariance(x, vc) * self.stats.condVariance(y, vc))
-            # dirty hack
-            #if not rho2 < 1: rho2 = 0.9
-            if not rho2 < 1: pdb.set_trace()
-            cmi_xy += Pc * math.log(1 - rho2)
-        return -0.5 * cmi_xy * self.inv_log2
 
     def probC(self, c):
         return self.cpdC.condProb([c])
@@ -126,7 +83,7 @@ class TANClassifierLearner(NBClassifierLearner):
                 #   a maximum spantree
                 #e = WeightedEdge(i, j, -self.cmi[i,j])
                 #edges.append(e)
-                edges.append(WeightedEdge(j, i, -self.cmi[i,j]))
+                edges.append(WeightedEdge(j, i, -self.cmi.cmi(i,j)))
         #edgeset = WeightedEdgeSet(self.num_attr)
         #edgeset.add_many(edges)
         #net = WeightedNetwork(edgeset)

@@ -176,6 +176,7 @@ def cross_validate(data, classifier_type="tan", test_ratio=0.05, runs=1, verbose
     def classifier_picker(classifier_type):
         classifier_types = {
             'nb'    :   'nb_classifier.NBClassifierLearner',
+            'nbc'   :   'nb_classifier_cont.NBClassifierLearner',
             'tan'   :   'tan_classifier2.TANClassifierLearner',
             'tanc'   :   'tan_classifier_cont.TANClassifierLearner'
         }

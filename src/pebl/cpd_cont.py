@@ -139,6 +139,10 @@ class StatsConcrete(object):
             # end if
         # end for
 
+    def newObs(self, obs, change=1):
+        self._change_counts(obs, change)
+        self._updateStatistics()
+
     def condCovariance(self, x, y, p):
         if type(p) is not int:
             p = np.dot(p, self.offsets)
@@ -156,6 +160,7 @@ class StatsConcrete(object):
     def condVariance(self, x, p):
         #return self.cov[p, x, x]
         return self.condCovariance(x, x, p)
+
 # end class
 
 def var_type(variable):
@@ -210,7 +215,7 @@ class MultivariateCPD(object):
 
         # parameter matrix, one row for each value of discrete parents,
         #   the last column is used as dirty bit
-        self.params = np.zeros((qi, self.num_cv + 1 + 1))
+        self.params = np.zeros((qi, self.num_cv + 1 + 1 + 1))
 
         
     def updateParameters(self):
@@ -264,9 +269,10 @@ class MultivariateCPD(object):
                         self.real_continuous_parents):
                     var -= beta[m] * beta[n] * this_cov[j, k]
             if var**.5 != var**.5: pdb.set_trace()
-            self.params[i, :-1] = np.concatenate((beta, [var**.5]))
-            # reset dirty bit
-            self.params[i, -1] = 0
+            self.params[i, :-2] = np.concatenate((beta, [var**.5]))
+            # cache some value for condProb calculation
+            self.params[i, -2] = 2*var
+            self.params[i, -1] = 1/(self.params[i, -3]*(2*math.pi)**.5)
             # clear a and b
             a *= 0
             b *= 0
@@ -282,24 +288,34 @@ class MultivariateCPD(object):
             delta = mu * 0.001
             return delta*gaussian(x, mu, sigma)
 
-        a_case = np.array(a_case).astype(float)
-        idx = np.dot(a_case[self.discrete_parents].astype(int), self.offsets)
-        cont_parent_values = a_case[ self.continuous_parents ]
+        #pdb.set_trace()
+        #a_case = np.array(a_case).astype(float)
+        #idx = np.dot(a_case[self.discrete_parents].astype(int), self.offsets)
+        idx = a_case[-1]
+        #cont_parent_values = a_case[ self.continuous_parents ]
+        cont_parent_values = [a_case[i] for i in self.continuous_parents]
         x = a_case[0]
 
         this_param = self.params[idx]
         mu = this_param[0]
-        for b,u in izip(this_param[1:-2], cont_parent_values):
+        for b,u in izip(this_param[1:-3], cont_parent_values):
             mu += b*u
-        sigma = this_param[-2]
+        #sigma = this_param[-2]
 
         #if gaussian(x, mu, sigma) == 0 or math.isnan(gaussian(x, mu, sigma)):
             #import pdb; pdb.set_trace()
         #return gaussian(x, mu, sigma) * (self.stats.counts[idx,-1]/self.stats.num_obs+1.0)
-        return gaussian(x, mu, sigma)
+        exp = math.e**(-(x-mu)**2/this_param[-2])
+        return this_param[-1]*exp
+        #return gaussian(x, mu, sigma)
         #return gaussprob(x, mu, sigma)
 
-    def new_obs(self, obs, change=1):
-        self.stats._change_counts(obs, change)
-        self.stats._updateStatistics()
+    def newObs(self, obs, change=1):
+        self.stats.newObs(obs, change)
 
+    def condCovariance(self, x, y, p):
+        args = [self.real_idx[i] for i in (x, y)] + [p]
+        return self.stats.condCovariance(*args)
+
+    def condVariance(self, x, p):
+        return self.condCovariance(x, x, p)
