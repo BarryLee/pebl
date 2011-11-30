@@ -62,7 +62,7 @@ class MultinomialCPD(mcpd):
 
         return p
 
-    def new_obs(self, obs, change=1):
+    def newObs(self, obs, change=1):
         self._change_counts(obs, change)
 
 def var_type(variable):
@@ -309,5 +309,5 @@ class MultivariateCPD(object):
         return gaussian(x, mu, sigma)
         #return gaussprob(x, mu, sigma)
 
-    def new_obs(self, obs, change=1):
+    def newObs(self, obs, change=1):
         self._change_counts(obs, change)

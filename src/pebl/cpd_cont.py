@@ -196,6 +196,9 @@ class MultivariateCPD(object):
         elif type(data_) is Dataset:
             self.data = data_
             self.stats = StatsConcrete(data_)
+        else:
+            pdb.set_trace()
+            raise Exception, 'invalid argument data_: %s' % data_
 
         if subset_idx is None:
             assert var_type(self.data.variables[0]) == 'continuous'

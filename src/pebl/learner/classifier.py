@@ -33,14 +33,14 @@ class LocalCPDCache(object):
 class ClassifierLearnerException(Exception):
     pass
 
-class ClassifierLearner(Learner):
+class ClassifierLearner(object):
     """Base class for learning a bayesian network classifier.
 
     """
     def __init__(self, data_=None, prior_=None, local_cpd_cache=None, **kw):
-        super(ClassifierLearner, self).__init__(data_)
+        #super(ClassifierLearner, self).__init__(data_)
 
-        data_ = self.data
+        self.data = data_
         # do not support incomplete data
         if data_.has_interventions or data_.has_missing:
             raise ClassifierLearnerException, "do not support incomplete data"
