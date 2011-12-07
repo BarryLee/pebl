@@ -30,7 +30,7 @@ class NBClassifierLearner(ClassifierLearner):
 
         def update(self, k, obs):
             c = self.get(k)
-            c.new_obs(obs)
+            c.newObs(obs)
             return c
 
     # -------------------------------------------------------------------------
@@ -40,6 +40,7 @@ class NBClassifierLearner(ClassifierLearner):
             local_cpd_cache = self.LocalCPDCache()
         super(NBClassifierLearner, self).__init__(data_, prior_, local_cpd_cache)
         self.stats = stats
+        self._num_new_obs = 0
 
     def _run(self):
         self.buildCpd()
@@ -77,9 +78,13 @@ class NBClassifierLearner(ClassifierLearner):
             if hasattr(this_cpd, "updateParameters"):
                 this_cpd.updateParameters()
             self.cpd[vertex] = this_cpd
+
     def updateCpd(self, observations):
         self.stats.newObs(observations)
         self.cpdC.newObs(observations[:,-1])
+        if self._num_new_obs > 10:
+            self.learnParameters()
+            self._num_new_obs = 0
 
     def updateNetwork(self):
         self.network = self._addClassParent()

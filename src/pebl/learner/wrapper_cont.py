@@ -70,6 +70,8 @@ class WrapperClassifierLearner(object):
         self._cpd_cache = getattr(self.classifier_type, 'LocalCPDCache')() 
         self.stats = stats or StatsConcrete(data_)
         self.cmi = CMICont(self.stats)
+        # to control running
+        self.running = False
 
     def run(self, **kwargs):
         return getattr(self, self.default_alg)(**kwargs)
@@ -91,12 +93,8 @@ class WrapperClassifierLearner(object):
             else: raise Exception, "No such variable: %s" % a
         
     def greedyForward(self, score_func, stop_no_better=True, **sfargs):
-        #if mute:
-            ## supress output
-            #so = file('/dev/null', 'a+')
-            #stdout = os.dup(sys.stdout.fileno())
-            #os.dup2(so.fileno(), sys.stdout.fileno())
-        
+        self.running = True
+
         attrs_left = range(self.num_attr)
         for a in self.prohibited_attrs:
             attrs_left.remove(self._attrIdx(a))
@@ -136,6 +134,8 @@ class WrapperClassifierLearner(object):
                 if score >= self.max_score:
                     self.max_score = score
                     pick = i
+                if not self.running and self.num_attr_selected > 0:
+                    break
 
             attr_this_round = attrs_left.pop(pick_this_round)
             #attrs_selected_latest = attrs_selected_latest + [attr_this_round] # this creates a new list
@@ -150,23 +150,8 @@ class WrapperClassifierLearner(object):
 
             if pick == -1:
                 if stop_no_better: break
-            #else:
-                #assert pick_this_round == pick
-                ##assert len(self.attrs_selected) == len(attrs_selected_latest) - 1
-                ##self.attrs_selected = attrs_selected_latest[:]
-                #self.attrs_selected.append(attr_this_round)
 
-        #for each,score in attrs_selected_each_round:
-            #each.sort()
-            #each.append(cls_node)
-
-        #self.attrs_selected.sort()
-        #self.attrs_selected.append(cls_node)
-        #self.attrs_selected = attrs_selected
-
-        #if mute:
-            ## restore output
-            #os.dup2(stdout, sys.stdout.fileno())
+        self.running = False
         
     def _getSubLearner(self, subset_idx):
         data = self.data.subset(subset_idx)
@@ -218,7 +203,8 @@ class WrapperClassifierLearner(object):
 
     def _stop(self):
         return self.max_score >= self.score_good_enough or \
-                self.num_attr_selected >= self.max_num_attr
+                self.num_attr_selected >= self.max_num_attr or \
+                not self.running
 
     def addObs(self, obs):
         #if len(self._cpd_cache._cache):
@@ -226,8 +212,10 @@ class WrapperClassifierLearner(object):
         #else:
         self.data.observations = np.append(self.data.observations, obs, axis=0)
 
-    def updateCpd(self, obs):
-        cache = self._cpd_cache._cache
-        for k, v in cache.iteritems():
-            v.new_obs(obs[:, k])
+    #def updateCpd(self, obs):
+        #cache = self._cpd_cache._cache
+        #for k, v in cache.iteritems():
+            #v.newObs(obs[:, k])
 
+    def stop(self):
+        self.running = False

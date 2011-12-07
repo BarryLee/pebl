@@ -60,7 +60,11 @@ class TANClassifierLearner(NBClassifierLearner):
 
     def updateCpd(self, observations):
         self.stats.newObs(observations)
-        self.cpdC.newObs(observations[:,-1])
+        self.cpdC.newObs(observations[:,[self.num_attr]])
+        self._num_new_obs += len(observations)
+        if self._num_new_obs > 10:
+            self.learnParameters()
+            self._num_new_obs = 0
 
     def updateNetwork(self):
         #self.cmi = self._condMutualInfoAll()
