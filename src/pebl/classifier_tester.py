@@ -12,27 +12,29 @@ from pebl.classifier import Classifier
 from pebl.learner.classifier import ClassifierLearner
 
 def fail_breakdown(b1):
-    print 'failed tests break down:'
+    ret = []
+    #ret.append('failed tests break down:')
     num_cls = len(b1.keys())
-    print '-'*23*num_cls
+    ret.append('-'*23*num_cls)
     # -----------------------------------
-    print ''.join(['%-17s' % e for e in ['class'] + [str(k) for k in b1.keys()]])
+    ret.append(''.join(['%-17s' % e for e in ['class'] + [str(k) for k in b1.keys()]]))
 
     num_test_cls = [b1[k]['f']['s'] + b1[k]['p'] for k in b1.keys()]
-    print ''.join(['%-17s' % e for e in ['# of tests'] + num_test_cls])
+    ret.append(''.join(['%-17s' % e for e in ['# of tests'] + num_test_cls]))
 
     num_fail_cls = [b1[k]['f']['s'] for k in b1.keys()]
-    print ''.join(['%-17s' % e for e in ['# of fails'] + num_fail_cls])
+    ret.append(''.join(['%-17s' % e for e in ['# of fails'] + num_fail_cls]))
 
-    num_mis_cls = [[(k,v) for k,v in b1[i]['f'].iteritems() if k!='s'] for i in b1.keys()]
-    print ''.join(['%-17s' % e for e in ['mis'] + ['%d: %d' % (mis[0]) for mis in num_mis_cls]])
-    for i in range(1, num_cls-1):
-        print ''.join(['%-17s' % e for e in [''] + ['%d: %d' % (mis[i]) for mis in num_mis_cls]])
+    #num_mis_cls = [[(k,v) for k,v in b1[i]['f'].iteritems() if k!='s'] for i in b1.keys()]
+    #ret.append(''.join(['%-17s' % e for e in ['mis'] + ['%d: %d' % (mis[0]) for mis in num_mis_cls]]))
+    #for i in range(1, num_cls-1):
+        #ret.append(''.join(['%-17s' % e for e in [''] + ['%d: %d' % (mis[i]) for mis in num_mis_cls]]))
 
-    print ''.join(['%-17s' % e for e in ['fail ratio'] + 
-                   [fs*ts and fs/float(ts) or 0 for fs,ts in izip(num_fail_cls, num_test_cls)]])
+    ret.append(''.join(['%-17s' % e for e in ['fail ratio'] + 
+                   [fs*ts and fs/float(ts) or 0 for fs,ts in izip(num_fail_cls, num_test_cls)]]))
     # -----------------------------------
-    print '-'*23*len(b1.keys())
+    ret.append('-'*23*len(b1.keys()))
+    return '\n'.join(ret)
 
 class TestResult(object):
 
@@ -89,21 +91,28 @@ class TestResult(object):
         self.num_pass += another_result.num_pass
         self.num_testcase += another_result.num_testcase
 
-    def report(self, verbose=False, score_type='TA'):
+    def reports(self, verbose=False, score_type='TA'):
         if not self.runs > 0:
             raise Exception, "You haven't run any tests"
         sn, sv = self.score(score_type)
+        ret = []
         if not verbose:
-            print self.num_pass, self.num_fail
-            print sv
+            ret.append('%s %s' % (self.num_pass, self.num_fail))
+            ret.append('%f' % sv)
         else:
-            print '# of tests: %d' % self.num_testcase
-            print '# of passes: %d' % self.num_pass
-            print '# of fails: %d' % self.num_fail
-            print '%s: %f' % (sn, sv)
+            ret.append('# of tests: %d' % self.num_testcase)
+            ret.append('# of passes: %d' % self.num_pass)
+            ret.append('# of fails: %d' % self.num_fail)
+            ret.append('%s: %f' % (sn, sv))
             if self.num_fail:
-                fail_breakdown(self.detail)
+                ret.append(fail_breakdown(self.detail))
+        return '\n'.join(ret)
 
+    def report(self, verbose=False, score_type='TA'):
+        print self.reports(verbose, score_type)
+
+    def failBreakdown(self):
+        return fail_breakdown(self.detail)
 
 class ClassifierTester(object):
 

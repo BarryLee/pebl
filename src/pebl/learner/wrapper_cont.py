@@ -57,7 +57,9 @@ class WrapperClassifierLearner(object):
                  required_attrs=None, prohibited_attrs=None,
                  score_good_enough=1, max_num_attr=None, 
                  default_alg='greedyForwardSimple', 
-                 stats=None, **kw):
+                 stats=None, 
+                 log='/dev/null',
+                 **kw):
         #super(WrapperClassifierLearner, self).__init__(data_)
         self.data = data_
         self.num_attr = len(data_.variables) - 1
@@ -72,6 +74,7 @@ class WrapperClassifierLearner(object):
         self.cmi = CMICont(self.stats)
         # to control running
         self.running = False
+        self.log = log
 
     def run(self, **kwargs):
         return getattr(self, self.default_alg)(**kwargs)
@@ -92,7 +95,8 @@ class WrapperClassifierLearner(object):
             if ret: return ret
             else: raise Exception, "No such variable: %s" % a
         
-    def greedyForward(self, score_func, stop_no_better=True, **sfargs):
+    def greedyForward(self, score_func, stop_no_better=True, score_type='TA', **sfargs):
+        self.openLog()
         self.running = True
 
         attrs_left = range(self.num_attr)
@@ -113,13 +117,19 @@ class WrapperClassifierLearner(object):
         cls_node = self.num_attr
         _stop = self._stop
 
+        self.num_models = 0
+        intermediate_results = []
         # if there are preselect attrs, compute a initial score
         if len(attrs_selected_latest):
             tmp = attrs_selected_latest + [cls_node]
             tmp.sort()
-            score = score_func(tmp, **sfargs)
+            result = score_func(attrs_selected_each_round, **sfargs)
+            self.num_models += 1
+            score = result.score(score_type)[1]
             attrs_selected_each_round.append([attrs_selected_latest[:],score])
             self.max_score = score
+            intermediate_results.append([tmp, result])
+            yield self.num_models, tmp, result, 0
 
         while len(attrs_left) and not _stop():
             pick = -1
@@ -127,10 +137,15 @@ class WrapperClassifierLearner(object):
             for i,a in enumerate(attrs_left):
                 tmp = attrs_selected_latest + [a, cls_node]
                 tmp.sort()
-                score = score_func(tmp, **sfargs)
+                result = score_func(tmp, **sfargs)
+                self.num_models += 1
+                intermediate_results.append([[a], result])
+                yield self.num_models, tmp, result, 0
+                score = result.score(score_type)[1]
                 if score >= max_score_this_round:
                     max_score_this_round = score
                     pick_this_round = i
+                    #pick_model_this_round = self.num_models
                 if score >= self.max_score:
                     self.max_score = score
                     pick = i
@@ -146,12 +161,16 @@ class WrapperClassifierLearner(object):
             if pick_this_round == pick:
                 self.attrs_selected.append(attr_this_round)
 
-            yield attr_this_round, max_score_this_round
+            yield attr_this_round, max_score_this_round, \
+                    pick_this_round, intermediate_results, 1
 
             if pick == -1:
                 if stop_no_better: break
 
+            intermediate_results = []
+
         self.running = False
+        self.closeLog()
         
     def _getSubLearner(self, subset_idx):
         data = self.data.subset(subset_idx)
@@ -182,7 +201,8 @@ class WrapperClassifierLearner(object):
         tester = ClassifierTester(c, data)
         result = tester.run(mute=mute)
         if not mute: result.report(verbose=verbose, score_type=score_type)
-        return tester.getScore(score_type)[1]
+        #return tester.getScore(score_type)[1]
+        return result
 
     def greedyForwardSimple(self, stop_no_better=True, score_type='WC', mute=True, verbose=False):
         return self.greedyForward(score_func=self._simpleScoreFunc, 
@@ -219,3 +239,15 @@ class WrapperClassifierLearner(object):
 
     def stop(self):
         self.running = False
+
+    def openLog(self):
+        self.closeLog()
+        self._logf = open(self.log, 'w+')
+
+    def closeLog(self):
+        if hasattr(self, '_logf'):
+            self._logf.close()
+
+    def logResult(self, intermediate_results, best_idx):
+        pass
+
