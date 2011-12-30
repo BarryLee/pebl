@@ -103,14 +103,14 @@ class WrapperClassifierLearner(object):
         for a in self.prohibited_attrs:
             attrs_left.remove(self._attrIdx(a))
 
-        self.attrs_selected = []
+        attrs_selected_latest = []
         for a in self.required_attrs:
             a = self._attrIdx(a)
             attrs_left.remove(a)
-            self.attrs_selected.append(a)
+            attrs_selected_latest.append(a)
 
         attrs_selected_each_round = self.attrs_selected_each_round = []
-        attrs_selected_latest = self.attrs_selected[:]
+        self.attrs_selected = attrs_selected_latest[:]
 
         self.max_score = -1
         self.num_attr_selected = len(self.attrs_selected)
@@ -153,13 +153,12 @@ class WrapperClassifierLearner(object):
                     break
 
             attr_this_round = attrs_left.pop(pick_this_round)
-            #attrs_selected_latest = attrs_selected_latest + [attr_this_round] # this creates a new list
             attrs_selected_latest.append(attr_this_round)
             attrs_selected_each_round.append([attrs_selected_latest[:], max_score_this_round])
             self.num_attr_selected += 1
 
             if pick_this_round == pick:
-                self.attrs_selected.append(attr_this_round)
+                self.attrs_selected = attrs_selected_latest[:]
 
             yield attr_this_round, max_score_this_round, \
                     pick_this_round, intermediate_results, 1
