@@ -1,0 +1,118 @@
+# use multiprocessing
+import pdb
+import multiprocessing
+
+from pebl.learner.wrapper_cont import WrapperClassifierLearner as WCL
+from monserver.event import pickle_methods
+
+def f(x):
+    return x
+
+class WrapperClassifierLearner(WCL):
+
+    def _greedyForwardSub(self, score_func, selected, candidate, **sfargs):
+        cls_node = self.num_attr
+        tmp = selected + [candidate, cls_node]
+        tmp.sort()
+        result = score_func(tmp, **sfargs)
+        return result
+
+    def greedyForward(self, score_func, stop_no_better=True, score_type='TA', **sfargs):
+        #self.openLog()
+        self.running = True
+
+        attrs_left = range(self.num_attr)
+        for a in self.prohibited_attrs:
+            attrs_left.remove(self._attrIdx(a))
+
+        attrs_selected_latest = []
+        for a in self.required_attrs:
+            a = self._attrIdx(a)
+            attrs_left.remove(a)
+            attrs_selected_latest.append(a)
+
+        attrs_selected_each_round = self.attrs_selected_each_round = []
+        self.attrs_selected = attrs_selected_latest[:]
+
+        self.max_score = -1
+        self.num_attr_selected = len(self.attrs_selected)
+        cls_node = self.num_attr
+        _stop = self._stop
+
+        self.num_models = 0
+        intermediate_results = []
+        # if there are preselect attrs, compute a initial score
+        if len(attrs_selected_latest):
+            tmp = attrs_selected_latest + [cls_node]
+            tmp.sort()
+            result = score_func(attrs_selected_each_round, **sfargs)
+            self.num_models += 1
+            score = result.score(score_type)[1]
+            attrs_selected_each_round.append([attrs_selected_latest[:],score])
+            self.max_score = score
+
+        #pool = multiprocessing.Pool(processes=1)
+        queue = multiprocessing.Queue()
+        while len(attrs_left) and not _stop():
+            pick = -1
+            max_score_this_round = -1
+            f = lambda i,x: queue.put(
+                    (i, self._greedyForwardSub(score_func, 
+                            attrs_selected_latest, x, **sfargs)))
+            #pdb.set_trace()   
+            print attrs_left
+            ps = []
+            for i,a in enumerate(attrs_left):
+                #r = multiprocessing.Process(target=self._greedyForwardSub, args=(score_func, attrs_selected_latest, a), kwargs=sfargs).start()
+                #r = pool.apply(self._greedyForwardSub, args=(score_func, attrs_selected_latest, a), kwds=sfargs)
+                #print r
+                p = multiprocessing.Process(target=f, args=(i,a))
+                p.start()
+                ps.append(p)
+            for p in ps:
+                p.join()
+            for p in ps:
+                if p.is_alive():
+                    pdb.set_trace()
+                if p.exitcode != 0:
+                    pdb.set_trace()
+            results = []
+            while True:
+                try:
+                    results.append(queue.get(False))
+                except multiprocessing.queues.Empty:
+                    break
+            results.sort()
+            #print [(r[0], r[1].score(score_type)[1]) for r in results]
+            #pdb.set_trace()
+            for i,r in results:
+                intermediate_results.append([attrs_left[i],r])
+                score = r.score(score_type)[1]
+                if score >= max_score_this_round:
+                    max_score_this_round = score
+                    pick_this_round = i
+
+            if max_score_this_round >= self.max_score:
+                self.max_score = max_score_this_round
+                pick = pick_this_round
+
+            #if not self.running and self.num_attr_selected > 0:
+                #break
+
+            attr_this_round = attrs_left.pop(pick_this_round)
+            attrs_selected_latest.append(attr_this_round)
+            attrs_selected_each_round.append([attrs_selected_latest[:], max_score_this_round])
+            self.num_attr_selected += 1
+
+            if pick_this_round == pick:
+                self.attrs_selected = attrs_selected_latest[:]
+
+            yield attr_this_round, max_score_this_round, \
+                    pick_this_round, intermediate_results, 1
+
+            if pick == -1:
+                if stop_no_better: break
+
+            intermediate_results = []
+
+        self.running = False
