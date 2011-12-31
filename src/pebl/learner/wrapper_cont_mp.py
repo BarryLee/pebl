@@ -6,9 +6,6 @@ from pebl.learner.wrapper_cont import WrapperClassifierLearner as WCL
 #from monserver.event import pickle_methods
 from dummy_processing_pool import Pool
 
-def f(x):
-    return x
-
 class WrapperClassifierLearner(WCL):
 
     def _greedyForwardSub(self, score_func, selected, candidate, **sfargs):
@@ -67,7 +64,7 @@ class WrapperClassifierLearner(WCL):
             for i,r in results:
                 intermediate_results.append([attrs_left[i],r])
                 score = r.score(score_type)[1]
-                if score >= max_score_this_round:
+                if score > max_score_this_round:
                     max_score_this_round = score
                     pick_this_round = i
 
@@ -95,3 +92,9 @@ class WrapperClassifierLearner(WCL):
             intermediate_results = []
 
         self.running = False
+
+    def _getSubLearner(self, subset_idx):
+        data = self.data.subset(subset_idx)
+        learner = self.classifier_type(data)
+        learner.run()
+        return learner
