@@ -3,7 +3,8 @@ import pdb
 import multiprocessing
 
 from pebl.learner.wrapper_cont import WrapperClassifierLearner as WCL
-from monserver.event import pickle_methods
+#from monserver.event import pickle_methods
+from dummy_processing_pool import Pool
 
 def f(x):
     return x
@@ -51,38 +52,16 @@ class WrapperClassifierLearner(WCL):
             attrs_selected_each_round.append([attrs_selected_latest[:],score])
             self.max_score = score
 
-        #pool = multiprocessing.Pool(processes=1)
-        queue = multiprocessing.Queue()
+        pool = Pool()
         while len(attrs_left) and not _stop():
             pick = -1
             max_score_this_round = -1
-            f = lambda i,x: queue.put(
-                    (i, self._greedyForwardSub(score_func, 
-                            attrs_selected_latest, x, **sfargs)))
+            f = lambda x: (x[0], self._greedyForwardSub(score_func, 
+                                    attrs_selected_latest, x[1], **sfargs))
             #pdb.set_trace()   
             print attrs_left
-            ps = []
-            for i,a in enumerate(attrs_left):
-                #r = multiprocessing.Process(target=self._greedyForwardSub, args=(score_func, attrs_selected_latest, a), kwargs=sfargs).start()
-                #r = pool.apply(self._greedyForwardSub, args=(score_func, attrs_selected_latest, a), kwds=sfargs)
-                #print r
-                p = multiprocessing.Process(target=f, args=(i,a))
-                p.start()
-                ps.append(p)
-            for p in ps:
-                p.join()
-            for p in ps:
-                if p.is_alive():
-                    pdb.set_trace()
-                if p.exitcode != 0:
-                    pdb.set_trace()
-            results = []
-            while True:
-                try:
-                    results.append(queue.get(False))
-                except multiprocessing.queues.Empty:
-                    break
-            results.sort()
+            results = pool.map(f, enumerate(attrs_left))
+            #results.sort()
             #print [(r[0], r[1].score(score_type)[1]) for r in results]
             #pdb.set_trace()
             for i,r in results:
