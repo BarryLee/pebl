@@ -58,11 +58,11 @@ class WrapperClassifierLearner(WCL):
             #pdb.set_trace()   
             print attrs_left
             results = pool.map(f, enumerate(attrs_left))
-            #results.sort()
+            results.sort()
             #print [(r[0], r[1].score(score_type)[1]) for r in results]
             #pdb.set_trace()
             for i,r in results:
-                intermediate_results.append([attrs_left[i],r])
+                intermediate_results.append([ [attrs_left[i] ],r])
                 score = r.score(score_type)[1]
                 if score > max_score_this_round:
                     max_score_this_round = score
