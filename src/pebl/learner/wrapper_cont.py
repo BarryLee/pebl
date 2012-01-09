@@ -185,7 +185,7 @@ class WrapperClassifierLearner(object):
         attrs.append(cls_node)
         return self._getSubLearner(attrs)
 
-    def _simpleScoreFunc(self, subset_idx, score_type='WC', mute=True, verbose=False):
+    def _simpleScoreFunc(self, subset_idx, score_type='WC', mute=True, verbose=False, **kwargs):
         """Run test on the trainset.
 
         """

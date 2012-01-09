@@ -15,7 +15,15 @@ class WrapperClassifierLearner(WCL):
         result = score_func(tmp, **sfargs)
         return result
 
-    def greedyForward(self, score_func, stop_no_better=True, score_type='TA', **sfargs):
+    def greedyForwardSimple(self, stop_no_better=True, score_type='WC', mute=True, verbose=False, processes=None):
+        return self.greedyForward(score_func=self._simpleScoreFunc, 
+                           stop_no_better=stop_no_better,
+                           mute=mute,
+                           verbose=verbose,
+                           processes=processes,
+                           score_type=score_type)
+
+    def greedyForward(self, score_func, stop_no_better=True, score_type='TA', processes=None, **sfargs):
         #self.openLog()
         self.running = True
 
@@ -49,7 +57,7 @@ class WrapperClassifierLearner(WCL):
             attrs_selected_each_round.append([attrs_selected_latest[:],score])
             self.max_score = score
 
-        pool = Pool()
+        pool = Pool(processes)
         while len(attrs_left) and not _stop():
             pick = -1
             max_score_this_round = -1
@@ -62,7 +70,7 @@ class WrapperClassifierLearner(WCL):
             #print [(r[0], r[1].score(score_type)[1]) for r in results]
             #pdb.set_trace()
             for i,r in results:
-                intermediate_results.append([ [attrs_left[i] ],r])
+                intermediate_results.append([[attrs_left[i]],r])
                 score = r.score(score_type)[1]
                 if score > max_score_this_round:
                     max_score_this_round = score
